@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30804.86
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RICADO.RabbitMQ", "RICADO.RabbitMQ\RICADO.RabbitMQ.csproj", "{20EBB245-6321-4A9A-8C8B-CC3C7D1ED95E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{20EBB245-6321-4A9A-8C8B-CC3C7D1ED95E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{20EBB245-6321-4A9A-8C8B-CC3C7D1ED95E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{20EBB245-6321-4A9A-8C8B-CC3C7D1ED95E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{20EBB245-6321-4A9A-8C8B-CC3C7D1ED95E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7190C4EF-DC97-407D-9A94-53963A99ADF7}
+	EndGlobalSection
+EndGlobal
