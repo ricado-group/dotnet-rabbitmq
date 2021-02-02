@@ -73,14 +73,14 @@ namespace RICADO.RabbitMQ
         {
             get
             {
-                lock(_lastBrokerDeliveryTagLock)
+                lock (_lastBrokerDeliveryTagLock)
                 {
                     return _lastBrokerDeliveryTag;
                 }
             }
             set
             {
-                lock(_lastBrokerDeliveryTagLock)
+                lock (_lastBrokerDeliveryTagLock)
                 {
                     _lastBrokerDeliveryTag = value;
                 }
@@ -254,6 +254,8 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        public bool IsConnected => _channel?.IsOpen ?? false;
+
         #endregion
 
 
@@ -261,12 +263,12 @@ namespace RICADO.RabbitMQ
 
         public RabbitMQClient(string clientName, string applicationName, string username, string password, string virtualHost, ICollection<string> servers)
         {
-            if(clientName == null)
+            if (clientName == null)
             {
                 throw new ArgumentNullException(nameof(clientName));
             }
 
-            if(clientName.Length == 0)
+            if (clientName.Length == 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(clientName), "The Client Name cannot be Empty");
             }
@@ -290,7 +292,7 @@ namespace RICADO.RabbitMQ
                 throw new ArgumentNullException(nameof(username));
             }
 
-            if(username.Length == 0)
+            if (username.Length == 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(username), "The Username cannot be Empty");
             }
@@ -302,7 +304,7 @@ namespace RICADO.RabbitMQ
                 throw new ArgumentNullException(nameof(password));
             }
 
-            if(password.Length == 0)
+            if (password.Length == 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(password), "The Password cannot be Empty");
             }
@@ -326,11 +328,11 @@ namespace RICADO.RabbitMQ
                 throw new ArgumentNullException(nameof(servers));
             }
 
-            if(servers.Count == 0)
+            if (servers.Count == 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(servers), "The Servers Collection cannot be Empty");
             }
-            
+
             _servers = servers;
 
             try
@@ -439,12 +441,12 @@ namespace RICADO.RabbitMQ
 
             _servers = servers;
 
-            if(sslCommonName == null)
+            if (sslCommonName == null)
             {
                 throw new ArgumentNullException(nameof(sslCommonName));
             }
 
-            if(sslCommonName.Length == 0)
+            if (sslCommonName.Length == 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(sslCommonName), "The SSL Common Name cannot be Empty");
             }
@@ -566,6 +568,11 @@ namespace RICADO.RabbitMQ
 
         public async Task DeclareExchange(string name, enExchangeType type, bool durable, bool autoDelete, CancellationToken cancellationToken)
         {
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
             await _channelSemaphore.WaitAsync(cancellationToken);
 
             try
@@ -585,6 +592,11 @@ namespace RICADO.RabbitMQ
 
         public async Task DeleteExchange(string name, bool ifUnused, CancellationToken cancellationToken)
         {
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
             await _channelSemaphore.WaitAsync(cancellationToken);
 
             try
@@ -602,8 +614,13 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        public async Task DeclareQueue(string name, bool durable, bool exclusive, bool autoDelete, CancellationToken cancellationToken)
+        public async Task DeclareQueue(string name, bool durable, bool exclusive, bool autoDelete, CancellationToken cancellationToken, string deadLetterExchangeName = null)
         {
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
             await _channelSemaphore.WaitAsync(cancellationToken);
 
             try
@@ -613,7 +630,14 @@ namespace RICADO.RabbitMQ
                     throw new RabbitMQException("Cannot Declare a Queue while the Channel is Unavailable");
                 }
 
-                QueueDeclareOk result = _channel.QueueDeclare(name, durable, exclusive, autoDelete);
+                Dictionary<string, object> properties = new Dictionary<string, object>();
+
+                if (deadLetterExchangeName != null && deadLetterExchangeName.Length > 0)
+                {
+                    properties.Add("x-dead-letter-exchange", deadLetterExchangeName);
+                }
+
+                QueueDeclareOk result = _channel.QueueDeclare(name, durable, exclusive, autoDelete, properties);
 
                 if (result == null || result.QueueName != name)
                 {
@@ -628,6 +652,11 @@ namespace RICADO.RabbitMQ
 
         public async Task<uint> DeleteQueue(string name, bool ifUnused, bool ifEmpty, CancellationToken cancellationToken)
         {
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
             await _channelSemaphore.WaitAsync(cancellationToken);
 
             try
@@ -645,8 +674,23 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        public async Task BindExchangeToExchange(string sourceName,  string destinationName, string routingKey, CancellationToken cancellationToken)
+        public async Task BindExchangeToExchange(string sourceName, string destinationName, string routingKey, CancellationToken cancellationToken)
         {
+            if (sourceName == null)
+            {
+                throw new ArgumentNullException(nameof(sourceName));
+            }
+
+            if (destinationName == null)
+            {
+                throw new ArgumentNullException(nameof(destinationName));
+            }
+
+            if (routingKey == null)
+            {
+                throw new ArgumentNullException(nameof(routingKey));
+            }
+
             await _channelSemaphore.WaitAsync(cancellationToken);
 
             try
@@ -666,6 +710,21 @@ namespace RICADO.RabbitMQ
 
         public async Task UnbindExchangeFromExchange(string sourceName, string destinationName, string routingKey, CancellationToken cancellationToken)
         {
+            if (sourceName == null)
+            {
+                throw new ArgumentNullException(nameof(sourceName));
+            }
+
+            if (destinationName == null)
+            {
+                throw new ArgumentNullException(nameof(destinationName));
+            }
+
+            if (routingKey == null)
+            {
+                throw new ArgumentNullException(nameof(routingKey));
+            }
+
             await _channelSemaphore.WaitAsync(cancellationToken);
 
             try
@@ -685,6 +744,21 @@ namespace RICADO.RabbitMQ
 
         public async Task BindQueueToExchange(string queueName, string exchangeName, string routingKey, CancellationToken cancellationToken)
         {
+            if (queueName == null)
+            {
+                throw new ArgumentNullException(nameof(queueName));
+            }
+
+            if (exchangeName == null)
+            {
+                throw new ArgumentNullException(nameof(exchangeName));
+            }
+
+            if (routingKey == null)
+            {
+                throw new ArgumentNullException(nameof(routingKey));
+            }
+
             await _channelSemaphore.WaitAsync(cancellationToken);
 
             try
@@ -704,6 +778,21 @@ namespace RICADO.RabbitMQ
 
         public async Task UnbindQueueFromExchange(string queueName, string exchangeName, string routingKey, CancellationToken cancellationToken)
         {
+            if (queueName == null)
+            {
+                throw new ArgumentNullException(nameof(queueName));
+            }
+
+            if (exchangeName == null)
+            {
+                throw new ArgumentNullException(nameof(exchangeName));
+            }
+
+            if (routingKey == null)
+            {
+                throw new ArgumentNullException(nameof(routingKey));
+            }
+
             await _channelSemaphore.WaitAsync(cancellationToken);
 
             try
@@ -721,8 +810,18 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        public async Task CreateQueueConsumer(string queueName, Func<ReceivedMessage, CancellationToken, Task> method, CancellationToken cancellationToken)
+        public async Task CreateQueueConsumer(string queueName, Func<ReceivedMessage, CancellationToken, Task> asyncMethod, CancellationToken cancellationToken)
         {
+            if (queueName == null)
+            {
+                throw new ArgumentNullException(nameof(queueName));
+            }
+
+            if (asyncMethod == null)
+            {
+                throw new ArgumentNullException(nameof(asyncMethod));
+            }
+
             await _channelSemaphore.WaitAsync(cancellationToken);
 
             try
@@ -737,7 +836,7 @@ namespace RICADO.RabbitMQ
                     throw new RabbitMQException("Cannot Create a Queue Consumer while the Consumer Handler is Null");
                 }
 
-                if (_consumerAsyncMethods.TryAdd(queueName, method) == false)
+                if (_consumerAsyncMethods.TryAdd(queueName, asyncMethod) == false)
                 {
                     throw new RabbitMQException("Failed to Create the Queue Consumer - A Consumer with the same Name for this Queue is already Registered");
                 }
@@ -759,6 +858,11 @@ namespace RICADO.RabbitMQ
 
         public async Task DestroyQueueConsumer(string queueName, CancellationToken cancellationToken)
         {
+            if (queueName == null)
+            {
+                throw new ArgumentNullException(nameof(queueName));
+            }
+
             await _channelSemaphore.WaitAsync(cancellationToken);
 
             try
@@ -785,8 +889,43 @@ namespace RICADO.RabbitMQ
             _consumerAsyncMethods.TryRemove(queueName, out removedMethod);
         }
 
+        public void RegisterPublishResultHandler(string messageType, Func<Guid, enPublishResult, CancellationToken, Task> asyncMethod)
+        {
+            if (messageType == null)
+            {
+                throw new ArgumentNullException(nameof(messageType));
+            }
+
+            if (asyncMethod == null)
+            {
+                throw new ArgumentNullException(nameof(asyncMethod));
+            }
+
+            if (_publishResultsAsyncMethods.TryAdd(messageType, asyncMethod) == false)
+            {
+                throw new RabbitMQException("The Message Type '" + messageType + "' already has a Registered Publish Result Handler");
+            }
+        }
+
+        public void UnregisterPublishResultHandler(string messageType)
+        {
+            if (messageType == null)
+            {
+                throw new ArgumentNullException(nameof(messageType));
+            }
+
+            Func<Guid, enPublishResult, CancellationToken, Task> removedMethod;
+
+            _publishResultsAsyncMethods.TryRemove(messageType, out removedMethod);
+        }
+
         public async ValueTask Publish(PublishMessage message, CancellationToken cancellationToken)
         {
+            if (_channel == null || _channel.IsOpen == false)
+            {
+                throw new RabbitMQException("Cannot Publish a Message while the Channel is Unavailable");
+            }
+
             if (_publishSemaphore.Wait(0) == false)
             {
                 await _publishSemaphore.WaitAsync(cancellationToken);
@@ -794,13 +933,11 @@ namespace RICADO.RabbitMQ
 
             try
             {
-                // TODO: Test this thoroughly with bad connections and killing connectivity at weird times.
-
-                // TODO: We may need to catch a few particular exceptions to throw - otherwise it's entirely possible that AutoRecovery will allow us to continue writing to the Channel?
-
-                // NOTE: We could consider "queuing" up these messages to be published when the Connection / Channel is available again?
-
                 message.Publish(_channel);
+            }
+            catch (AlreadyClosedException e)
+            {
+                throw new RabbitMQException("Failed to Publish a Message - The Channel or Connection is Closed", e);
             }
             finally
             {
@@ -813,28 +950,99 @@ namespace RICADO.RabbitMQ
             });
         }
 
-        public ValueTask SendAck(ulong deliveryTag, bool multiple)
+        public async ValueTask<bool> TryPublish(PublishMessage message, CancellationToken cancellationToken)
         {
-            if(_channel == null)
+            if(_channel == null || _channel.IsOpen == false)
+            {
+                return false;
+            }
+
+            try
+            {
+                await Publish(message, cancellationToken);
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public ValueTask SendAck(ulong deliveryTag, bool multiple = false)
+        {
+            if(_channel == null || _channel.IsOpen == false)
             {
                 throw new RabbitMQException("Cannot Ack a Message while the Channel is Unavailable");
             }
-            
-            _channel.BasicAck(deliveryTag, multiple); // TODO: As with Publish, test this like crazy as we may need to check if the Channel is Not Null and is Open
+
+            try
+            {
+                _channel.BasicAck(deliveryTag, multiple);
+            }
+            catch (AlreadyClosedException e)
+            {
+                throw new RabbitMQException("Failed to Ack a Message - The Channel or Connection is Closed", e);
+            }
 
             return ValueTask.CompletedTask;
         }
 
-        public ValueTask SendNack(ulong deliveryTag, bool multiple, bool requeue)
+        public async ValueTask<bool> TrySendAck(ulong deliveryTag, bool multiple = false)
         {
-            if (_channel == null)
+            if(_channel == null || _channel.IsOpen == false)
+            {
+                return false;
+            }
+
+            try
+            {
+                await SendAck(deliveryTag, multiple);
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public ValueTask SendNack(ulong deliveryTag, bool requeue, bool multiple = false)
+        {
+            if (_channel == null || _channel.IsOpen == false)
             {
                 throw new RabbitMQException("Cannot Nack a Message while the Channel is Unavailable");
             }
 
-            _channel.BasicNack(deliveryTag, multiple, requeue); // TODO: As with Publish, test this like crazy as we may need to check if the Channel is Not Null and is Open
+            try
+            {
+                _channel.BasicNack(deliveryTag, multiple, requeue);
+            }
+            catch (AlreadyClosedException e)
+            {
+                throw new RabbitMQException("Failed to Nack a Message - The Channel or Connection is Closed", e);
+            }
 
             return ValueTask.CompletedTask;
+        }
+
+        public async ValueTask<bool> TrySendNack(ulong deliveryTag, bool requeue, bool multiple = false)
+        {
+            if (_channel == null || _channel.IsOpen == false)
+            {
+                return false;
+            }
+
+            try
+            {
+                await SendNack(deliveryTag, requeue, multiple);
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         #endregion
@@ -1048,12 +1256,17 @@ namespace RICADO.RabbitMQ
 
         private void connectionRecoverySucceeded(object sender, EventArgs e)
         {
-
+            Console.WriteLine("Connection Recovery Succeeded for Client: {0}", _clientName);
         }
 
         private void connectionRecoveryError(object sender, ConnectionRecoveryErrorEventArgs e)
         {
+            Console.WriteLine("Connection Recovery Error for Client: {0}", _clientName);
 
+            if(e.Exception != null)
+            {
+                Console.WriteLine("Connection Recovery Exception: {0}", e.Exception);
+            }
         }
 
         private void connectionCallbackException(object sender, CallbackExceptionEventArgs e)
@@ -1160,7 +1373,7 @@ namespace RICADO.RabbitMQ
             ChannelException(e.Exception);
         }
 
-        private Task consumerReceived(object sender, BasicDeliverEventArgs eventArgs)
+        private async Task consumerReceived(object sender, BasicDeliverEventArgs eventArgs)
         {
             // TODO: Move this logic to another Task or similar that can run every so often
             foreach(RedeliveredMessage message in _consumerRedeliveredMessages.Values.Where(message => DateTime.Now.Subtract(message.LastTimestamp).TotalMinutes >= 5))
@@ -1172,31 +1385,47 @@ namespace RICADO.RabbitMQ
             
             if(eventArgs == null)
             {
-                return _consumerCts.IsCancellationRequested ? Task.FromCanceled(_consumerCts.Token) : Task.CompletedTask;
+                return;
             }
 
             Func<ReceivedMessage, CancellationToken, Task> asyncMethod;
 
             if (_consumerAsyncMethods.TryGetValue(eventArgs.ConsumerTag, out asyncMethod) == false)
             {
-                return handleNackForConsumerReceived(eventArgs);
+                await handleNackForConsumerReceived(eventArgs);
+                return;
             }
 
             ReceivedMessage receivedMessage = ReceivedMessage.CreateFromEvent(eventArgs);
 
             if (receivedMessage == null)
             {
-                return handleNackForConsumerReceived(eventArgs);
+                await handleNackForConsumerReceived(eventArgs);
+                return;
             }
 
             if (_consumerCts.IsCancellationRequested)
             {
-                return handleNackForConsumerReceived(eventArgs);
+                await handleNackForConsumerReceived(eventArgs);
+                return;
             }
+
+            // TODO: Track the Message ID as soon as we can identify it
+            //       this is so we can intentionally Nack and not Requeue
+            //       messages that we've seen redelivered multiple times
+            //       (assuming that the Async Method is performing a Nack)
+
+            // NOTE: Also consider the concept of taking longer to Nack - so essentially spinning off some task that will delay X seconds / minutes and then send the Nack.
+            //       This will ideally reduce the redelivery rate which will potentially help the Async Method dependents to recovery (e.g. a Database Connection).
+            //       After we've continued to receive the same redelivered message X times over X period (or maybe just the period), then we Nack without requeue and send it to the DLX
 
             try
             {
-                return asyncMethod(receivedMessage, _consumerCts.Token);
+                await asyncMethod(receivedMessage, _consumerCts.Token);
+            }
+            catch (AlreadyClosedException)
+            {
+                await handleNackForConsumerReceived(eventArgs);
             }
             catch (Exception e)
             {
@@ -1205,69 +1434,78 @@ namespace RICADO.RabbitMQ
                     ConsumerException(e);
                 }
 
-                return handleNackForConsumerReceived(eventArgs);
+                await handleNackForConsumerReceived(eventArgs);
             }
         }
 
-        private Task handleNackForConsumerReceived(BasicDeliverEventArgs eventArgs)
+        private async Task handleNackForConsumerReceived(BasicDeliverEventArgs eventArgs)
         {
-            if(eventArgs.DeliveryTag == 0)
+            try
             {
-                return _consumerCts.IsCancellationRequested ? Task.FromCanceled(_consumerCts.Token) : Task.CompletedTask;
-            }
-
-            if(eventArgs.Redelivered == false)
-            {
-                SendNack(eventArgs.DeliveryTag, false, true);
-
-                return _consumerCts.IsCancellationRequested ? Task.FromCanceled(_consumerCts.Token) : Task.CompletedTask;
-            }
-
-            Guid messageId;
-
-            if (eventArgs.BasicProperties == null || eventArgs.BasicProperties.IsMessageIdPresent() == false || Guid.TryParse(eventArgs.BasicProperties.MessageId, out messageId) == false || messageId == Guid.Empty)
-            {
-                // Nack without Redelivering as we cannot track how many times this message has been redelivered
-
-                SendNack(eventArgs.DeliveryTag, false, false);
-
-                return _consumerCts.IsCancellationRequested ? Task.FromCanceled(_consumerCts.Token) : Task.CompletedTask;
-            }
-
-            RedeliveredMessage message = _consumerRedeliveredMessages.GetValueOrDefault(messageId, new RedeliveredMessage
-            {
-                MessageID = messageId,
-                LastTimestamp = DateTime.Now,
-                RedeliveredCount = 1,
-            });
-
-            bool redeliver = true;
-
-            if(message.RedeliveredCount >= 3)
-            {
-                redeliver = false;
-            }
-
-            SendNack(eventArgs.DeliveryTag, false, redeliver);
-
-            if(redeliver)
-            {
-                _consumerRedeliveredMessages.AddOrUpdate(messageId, message, (existingKey, existingMessage) =>
+                if (eventArgs.DeliveryTag == 0)
                 {
-                    existingMessage.LastTimestamp = DateTime.Now;
-                    existingMessage.RedeliveredCount++;
+                    return;
+                }
 
-                    return existingMessage;
+                if (eventArgs.Redelivered == false)
+                {
+                    await TrySendNack(eventArgs.DeliveryTag, true);
+                    return;
+                }
+
+                Guid messageId;
+
+                if (eventArgs.BasicProperties == null || eventArgs.BasicProperties.IsMessageIdPresent() == false || Guid.TryParse(eventArgs.BasicProperties.MessageId, out messageId) == false || messageId == Guid.Empty)
+                {
+                    // Nack without Redelivering as we cannot track how many times this message has been redelivered
+
+                    await TrySendNack(eventArgs.DeliveryTag, false);
+                    return;
+                }
+
+                RedeliveredMessage message = _consumerRedeliveredMessages.GetValueOrDefault(messageId, new RedeliveredMessage
+                {
+                    MessageID = messageId,
+                    LastTimestamp = DateTime.Now,
+                    RedeliveredCount = 1,
                 });
+
+                bool redeliver = true;
+
+                if (message.RedeliveredCount >= 3)
+                {
+                    redeliver = false;
+                }
+
+                await TrySendNack(eventArgs.DeliveryTag, redeliver);
+
+                if (redeliver)
+                {
+                    _consumerRedeliveredMessages.AddOrUpdate(messageId, message, (existingKey, existingMessage) =>
+                    {
+                        existingMessage.LastTimestamp = DateTime.Now;
+                        existingMessage.RedeliveredCount++;
+
+                        return existingMessage;
+                    });
+                }
+                else
+                {
+                    RedeliveredMessage removedMessage;
+
+                    _consumerRedeliveredMessages.TryRemove(messageId, out removedMessage);
+                }
             }
-            else
+            catch (AlreadyClosedException)
             {
-                RedeliveredMessage removedMessage;
-
-                _consumerRedeliveredMessages.TryRemove(messageId, out removedMessage);
             }
-
-            return _consumerCts.IsCancellationRequested ? Task.FromCanceled(_consumerCts.Token) : Task.CompletedTask;
+            catch (Exception e)
+            {
+                if (ConsumerException != null)
+                {
+                    ConsumerException(e);
+                }
+            }
         }
 
         private async Task publishMessagesHandler()
@@ -1288,7 +1526,7 @@ namespace RICADO.RabbitMQ
                             }
                             else
                             {
-                                await transitionPublishMessageToResult(message.MessageID, enPublishResult.Timeout, cancellationToken);
+                                transitionPublishMessageToResult(message.MessageID, enPublishResult.Timeout);
                             }
                         }
                         catch (OperationCanceledException)
@@ -1318,12 +1556,22 @@ namespace RICADO.RabbitMQ
 
             if(_publishMessages.TryRemove(messageId, out message))
             {
-                _publishResultsChannel.Writer.TryWrite(new PublishResult
+                try
                 {
-                    MessageID = messageId,
-                    MessageType = message.Type,
-                    Result = result,
-                });
+                    _publishResultsChannel.Writer.TryWrite(new PublishResult
+                    {
+                        MessageID = messageId,
+                        MessageType = message.Type,
+                        Result = result,
+                    });
+                }
+                catch (Exception e)
+                {
+                    if (PublishException != null)
+                    {
+                        PublishException(e);
+                    }
+                }
             }
         }
 
