@@ -380,7 +380,17 @@ namespace RICADO.RabbitMQ
 
             channel.BasicPublish(Exchange, RoutingKey, Mandatory, BuildProperties(channel), Body);
 
-            lock(_publishTimestampLock)
+            lock (_publishTimestampLock)
+            {
+                _publishTimestamp = DateTime.Now;
+            }
+
+            _retriesCountdown.Signal();
+        }
+
+        internal void UpdateFailedPublish()
+        {
+            lock (_publishTimestampLock)
             {
                 _publishTimestamp = DateTime.Now;
             }
