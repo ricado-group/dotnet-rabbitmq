@@ -39,6 +39,9 @@ namespace RICADO.RabbitMQ
 
         #region Public Properties
 
+        /// <summary>
+        /// The Unique Message ID
+        /// </summary>
         public Guid MessageID
         {
             get
@@ -47,6 +50,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Exchange this Message will be Sent to
+        /// </summary>
         public string Exchange
         {
             get
@@ -59,6 +65,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Routing Key this Message will be Sent with
+        /// </summary>
         public string RoutingKey
         {
             get
@@ -71,6 +80,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Publishing Mode to handle interaction with the RabbitMQ Broker
+        /// </summary>
         public enPublishMode Mode
         {
             get
@@ -83,6 +95,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Type of Message
+        /// </summary>
         public string Type
         {
             get
@@ -95,6 +110,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Message Body Byte Array
+        /// </summary>
         public ReadOnlyMemory<byte> Body
         {
             get
@@ -107,6 +125,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// Whether the Message should be Persisted by the RabbitMQ Broker
+        /// </summary>
         public bool Persistent
         {
             get
@@ -119,6 +140,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// Whether the Message should be Returned if the RabbitMQ Broker cannot Route it to a Queue
+        /// </summary>
         public bool Mandatory
         {
             get
@@ -131,6 +155,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Content Type for the Body
+        /// </summary>
         public string ContentType
         {
             get
@@ -143,6 +170,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Content Encoding for the Body
+        /// </summary>
         public string ContentEncoding
         {
             get
@@ -155,6 +185,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// An Optional Time-to-Live (TTL) for the Message
+        /// </summary>
         public TimeSpan? Expiration
         {
             get
@@ -167,6 +200,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Time to Wait for a Publish Response from the RabbitMQ Broker
+        /// </summary>
         public TimeSpan PublishTimeout
         {
             get
@@ -179,6 +215,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Number of Times to Retry Publishing
+        /// </summary>
         public int PublishRetries
         {
             get
@@ -193,6 +232,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// An Optional ID that references the Message ID being Replied To
+        /// </summary>
         internal Guid? CorrelationID
         {
             get
@@ -205,6 +247,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// An Optional Queue Name to be used when requesting a Reply (RPC Style) for this Message
+        /// </summary>
         internal string ReplyTo
         {
             get
@@ -217,6 +262,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// A Delivery Tag that will be provided to the RabbitMQ Broker
+        /// </summary>
         internal ulong DeliveryTag
         {
             get
@@ -228,6 +276,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Timestamp of the last Publish Attempt
+        /// </summary>
         internal DateTime PublishTimestamp
         {
             get
@@ -239,6 +290,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// Whether this Message can be Retried for Publishing
+        /// </summary>
         internal bool HasRetriesAvailable
         {
             get
@@ -252,7 +306,11 @@ namespace RICADO.RabbitMQ
 
         #region Constructor
 
-        private PublishMessage(int initialPublishRetries)
+        /// <summary>
+        /// Create a new <see cref="PublishMessage"/> Instance
+        /// </summary>
+        /// <param name="initialPublishRetries">The Initial Retry Count for this Message</param>
+        protected PublishMessage(int initialPublishRetries)
         {
             _messageId = Guid.NewGuid();
 
@@ -264,6 +322,15 @@ namespace RICADO.RabbitMQ
 
         #region Public Methods
 
+        /// <summary>
+        /// Create a new Message for Publishing to an Exchange
+        /// </summary>
+        /// <param name="client">A <see cref="RabbitMQClient"/> Instance</param>
+        /// <param name="exchange">The Exchange to Publish this Message to</param>
+        /// <param name="routingKey">The Routing Key for this Message</param>
+        /// <param name="type">The Type of Message</param>
+        /// <param name="mode">The Publishing Mode for this Message</param>
+        /// <returns>A New <see cref="PublishMessage"/> Instance ready to be Customized before Publishing</returns>
         public static PublishMessage CreateNew(RabbitMQClient client, string exchange, string routingKey, string type = "", enPublishMode mode = enPublishMode.BrokerConfirm)
         {
             if(client == null)
@@ -292,6 +359,15 @@ namespace RICADO.RabbitMQ
             };
         }
 
+        /// <summary>
+        /// Create a new Message for Publishing a Reply directly to a Queue
+        /// </summary>
+        /// <param name="client">A <see cref="RabbitMQClient"/> Instance</param>
+        /// <param name="replyTo">The Name of the Queue to Directly Publish to</param>
+        /// <param name="receivedMessageId">The ID of the Message that is being Replied to</param>
+        /// <param name="type">The Type of Message</param>
+        /// <param name="mode">The Publishing Mode for this Message</param>
+        /// <returns>A New <see cref="PublishMessage"/> Instance ready to be Customized before Publishing</returns>
         public static PublishMessage CreateNew(RabbitMQClient client, string replyTo, Guid receivedMessageId, string type = "", enPublishMode mode = enPublishMode.BrokerConfirm)
         {
             if (client == null)
@@ -321,6 +397,11 @@ namespace RICADO.RabbitMQ
             };
         }
 
+        /// <summary>
+        /// Set the Queue Name that should be used for any Replies to this Message
+        /// </summary>
+        /// <param name="queueName">A Valid Queue Name</param>
+        /// <returns>This Instance of <see cref="PublishMessage"/></returns>
         public PublishMessage SetReplyToQueueName(string queueName)
         {
             this.ReplyTo = queueName;
@@ -397,13 +478,6 @@ namespace RICADO.RabbitMQ
 
             _retriesCountdown.Signal();
         }
-
-        #endregion
-
-
-        #region Private Methods
-
-        
 
         #endregion
     }

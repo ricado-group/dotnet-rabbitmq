@@ -95,6 +95,9 @@ namespace RICADO.RabbitMQ
 
         #region Public Properties
 
+        /// <summary>
+        /// The Name for this Client (shown in the RabbitMQ Management UI)
+        /// </summary>
         public string ClientName
         {
             get
@@ -103,6 +106,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Name of the Application that is utilizing this Client
+        /// </summary>
         public string ApplicationName
         {
             get
@@ -111,6 +117,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Username for Authentication with the RabbitMQ Broker
+        /// </summary>
         public string Username
         {
             get
@@ -119,6 +128,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Password for Authentication with RabbitMQ Broker
+        /// </summary>
         public string Password
         {
             get
@@ -127,6 +139,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The VirtualHost to utilize on the RabbitMQ Broker
+        /// </summary>
         public string VirtualHost
         {
             get
@@ -135,6 +150,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// A Collection of DNS Names or IP Addresses for RabbitMQ Brokers
+        /// </summary>
         public ICollection<string> Servers
         {
             get
@@ -143,6 +161,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Port of the RabbitMQ Broker - Defaults to <code>5672</code> for Non-TLS Connections and <code>5671</code> for TLS Connections
+        /// </summary>
         public int Port
         {
             get
@@ -155,6 +176,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Maximum Number of Async Tasks that can be Running Concurrently to process Received Messages
+        /// </summary>
         public int ConsumerConcurrency
         {
             get
@@ -167,6 +191,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Duration allowed before a Connection Attempt will Timeout
+        /// </summary>
         public TimeSpan ConnectionTimeout
         {
             get
@@ -179,6 +206,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Interval between Connection Recovery Attempts
+        /// </summary>
         public TimeSpan ConnectionRecoveryInterval
         {
             get
@@ -191,6 +221,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Delay between sending Heartbeat Messages to the RabbitMQ Broker
+        /// </summary>
         public TimeSpan HeartbeatInterval
         {
             get
@@ -203,6 +236,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Maximum Duration before a Socket Read will Timeout
+        /// </summary>
         public TimeSpan ReadTimeout
         {
             get
@@ -218,6 +254,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Maximum Duration before a Socket Write will Timeout
+        /// </summary>
         public TimeSpan WriteTimeout
         {
             get
@@ -233,6 +272,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Default Timeout for Message Publish Attempts
+        /// </summary>
         public TimeSpan? DefaultPublishTimeout
         {
             get
@@ -245,6 +287,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// The Default Retries for Message Publish Attempts
+        /// </summary>
         public int DefaultPublishRetries
         {
             get
@@ -257,8 +302,14 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// Whether this Client is Connected to the RabbitMQ Broker
+        /// </summary>
         public bool IsConnected => _channel?.IsOpen ?? false;
 
+        /// <summary>
+        /// Whether the Client Connection is Shutdown and no longer able to be used
+        /// </summary>
         public bool IsShutdown
         {
             get
@@ -1755,12 +1806,39 @@ namespace RICADO.RabbitMQ
 
         #region Events
 
+        /// <summary>
+        /// An Event that is Raised when an Exception occurs in a RabbitMQ Connection
+        /// </summary>
         public event ExceptionEventHandler ConnectionException;
+
+        /// <summary>
+        /// An Event that is Raised when an Exception occurs in a RabbitMQ Channel
+        /// </summary>
         public event ExceptionEventHandler ChannelException;
+
+        /// <summary>
+        /// An Event that is Raised when an Exception occurs in a RabbitMQ Consumer
+        /// </summary>
         public event ExceptionEventHandler ConsumerException;
+
+        /// <summary>
+        /// An Event that is Raised when an Exception occurs during a RabbitMQ Publish Attempt
+        /// </summary>
         public event ExceptionEventHandler PublishException;
+
+        /// <summary>
+        /// An Event that is Raised when the RabbitMQ Connection Recovers Successfully
+        /// </summary>
         public event ConnectionRecoverySuccessHandler ConnectionRecoverySuccess;
+
+        /// <summary>
+        /// An Event that is Raised when the RabbitMQ Connection Fails to Recover with an Exception
+        /// </summary>
         public event ConnectionRecoveryErrorHandler ConnectionRecoveryError;
+
+        /// <summary>
+        /// An Event that is Raised when the RabbitMQ Connection is unexpectedly Shutdown and is no longer useable
+        /// </summary>
         public event UnexpectedConnectionShutdownHandler UnexpectedConnectionShutdown;
 
         #endregion

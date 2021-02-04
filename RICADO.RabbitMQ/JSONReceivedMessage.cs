@@ -15,6 +15,9 @@ namespace RICADO.RabbitMQ
 
         #region Public Properties
 
+        /// <summary>
+        /// The JSON Message Body
+        /// </summary>
         public new JToken Body
         {
             get
@@ -35,21 +38,19 @@ namespace RICADO.RabbitMQ
         #endregion
 
 
-        #region Public Methods
-
-
-        #endregion
-
-
         #region Protected Methods
 
+        /// <summary>
+        /// Expand the Received Body Bytes into a JSON Token (JToken)
+        /// </summary>
+        /// <param name="bytes">The Received Bytes</param>
         protected override void ExpandBody(ReadOnlyMemory<byte> bytes)
         {
             base.ExpandBody(bytes);
 
             if(base.Body.Length == 0)
             {
-                _jsonBody = JToken.FromObject(null); // TODO: Confirm this actually works!
+                _jsonBody = JValue.CreateNull();
                 return;
             }
 
@@ -57,7 +58,7 @@ namespace RICADO.RabbitMQ
 
             if(jsonString == null || jsonString.Length == 0)
             {
-                _jsonBody = JToken.FromObject(null); // TODO: Confirm if this will work or whether we should call JToken.Parse on the Null / Empty String?
+                _jsonBody = JValue.CreateNull();
             }
 
             _jsonBody = JToken.Parse(jsonString);
