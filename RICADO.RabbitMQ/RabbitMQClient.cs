@@ -2,15 +2,12 @@
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Channels;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
 using RabbitMQ.Client.Events;
-using Newtonsoft.Json.Linq;
-using RICADO.Logging;
 
 namespace RICADO.RabbitMQ
 {
@@ -333,6 +330,17 @@ namespace RICADO.RabbitMQ
 
         #region Constructor
 
+        /// <summary>
+        /// Create a new <see cref="RabbitMQClient"/> Instance
+        /// </summary>
+        /// <param name="clientName">The Name for this Client (shown in the RabbitMQ Management UI)</param>
+        /// <param name="applicationName">The Name of the Application that is utilizing this Client</param>
+        /// <param name="username">The Username for Authentication with the RabbitMQ Broker</param>
+        /// <param name="password">The Password for Authentication with RabbitMQ Broker</param>
+        /// <param name="virtualHost">The VirtualHost to utilize on the RabbitMQ Broker</param>
+        /// <param name="servers">A Collection of DNS Names or IP Addresses for RabbitMQ Brokers</param>
+        /// <param name="useSsl">Whether to use a TLS or Non-TLS Connection</param>
+        /// <param name="sslCommonName">The Common Name (CN) of the SSL Certificate used by the RabbitMQ Broker</param>
         public RabbitMQClient(string clientName, string applicationName, string username, string password, string virtualHost, ICollection<string> servers, bool useSsl = false, string sslCommonName = null)
         {
             if (clientName == null)
@@ -466,6 +474,11 @@ namespace RICADO.RabbitMQ
 
         #region Public Methods
 
+        /// <summary>
+        /// Initialize this <see cref="RabbitMQClient"/> Instance
+        /// </summary>
+        /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
+        /// <returns>A Task that will Complete upon successful Initialization</returns>
         public async Task Initialize(CancellationToken cancellationToken)
         {
             LastBrokerDeliveryTag = 0;
@@ -485,6 +498,11 @@ namespace RICADO.RabbitMQ
             _publishMessagesTask = Task.Run(publishMessagesHandler);
         }
 
+        /// <summary>
+        /// Destroy this <see cref="RabbitMQClient"/> Instance
+        /// </summary>
+        /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
+        /// <returns>A Task that will Complete when this Instance is Destroyed</returns>
         public async Task Destroy(CancellationToken cancellationToken)
         {
             _publishResultsChannel?.Writer?.Complete();
@@ -545,6 +563,15 @@ namespace RICADO.RabbitMQ
             _publishMessagesTask = null;
         }
 
+        /// <summary>
+        /// Declare an Exchange
+        /// </summary>
+        /// <param name="name">The Name of the Exchange to Declare</param>
+        /// <param name="type">The Type of Exchange to Declare</param>
+        /// <param name="durable">Whether the Exchange should survive a RabbitMQ Broker Restart</param>
+        /// <param name="autoDelete">Whether the Exchange should be Deleted Automatically when it is no longer Bound or this Client Disconnects</param>
+        /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
+        /// <returns>A Task that will Complete upon successfully Declaring an Exchange</returns>
         public async Task DeclareExchange(string name, enExchangeType type, bool durable, bool autoDelete, CancellationToken cancellationToken)
         {
             if (name == null)
@@ -574,6 +601,13 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// Delete an Exchange
+        /// </summary>
+        /// <param name="name">The Name of the Exchange to Delete</param>
+        /// <param name="ifUnused">Whether the Exchange should only be Deleted if it is Unused</param>
+        /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
+        /// <returns>A Task that will Complete upon successfully Deleting an Exchange</returns>
         public async Task DeleteExchange(string name, bool ifUnused, CancellationToken cancellationToken)
         {
             if (name == null)
@@ -603,6 +637,16 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// Declare a Queue
+        /// </summary>
+        /// <param name="name">The Name of the Queue to Declare</param>
+        /// <param name="durable">Whether the Queue should survive a RabbitMQ Broker Restart</param>
+        /// <param name="exclusive">Whether the Queue can be used by other Clients and Processes</param>
+        /// <param name="autoDelete">Whether the Queue should be Deleted Automatically when it is no longer Bound or this Client Disconnects</param>
+        /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
+        /// <param name="deadLetterExchangeName">An Optional Name of the Exchange to Send Messages that are Dead-Lettered</param>
+        /// <returns>A Task that will Complete upon successfully Declaring a Queue</returns>
         public async Task DeclareQueue(string name, bool durable, bool exclusive, bool autoDelete, CancellationToken cancellationToken, string deadLetterExchangeName = null)
         {
             if (name == null)
@@ -644,6 +688,14 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// Delete a Queue
+        /// </summary>
+        /// <param name="name">The Name of the Queue to Delete</param>
+        /// <param name="ifUnused">Whether the Queue should only be Deleted if it is Unused</param>
+        /// <param name="ifEmpty">Whether the Queue should only be Deleted if it is Empty</param>
+        /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
+        /// <returns>A Task that will Complete upon successfully Deleting a Queue</returns>
         public async Task<uint> DeleteQueue(string name, bool ifUnused, bool ifEmpty, CancellationToken cancellationToken)
         {
             if (name == null)
@@ -673,6 +725,14 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// Bind an Exchange to another Exchange
+        /// </summary>
+        /// <param name="sourceName">The Name of the Source Exchange</param>
+        /// <param name="destinationName">The Name of the Destination Exchange</param>
+        /// <param name="routingKey">The Routing Key for this Exchange Binding</param>
+        /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
+        /// <returns>A Task that will Complete upon successfully Binding an Exchange to another Exchange</returns>
         public async Task BindExchangeToExchange(string sourceName, string destinationName, string routingKey, CancellationToken cancellationToken)
         {
             if (sourceName == null)
@@ -712,6 +772,14 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// Unbind an Exchange from another Exchange
+        /// </summary>
+        /// <param name="sourceName">The Name of the Source Exchange</param>
+        /// <param name="destinationName">The Name of the Destination Exchange</param>
+        /// <param name="routingKey">The Routing Key for this Exchange Binding</param>
+        /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
+        /// <returns>A Task that will Complete upon successfully Unbinding an Exchange from another Exchange</returns>
         public async Task UnbindExchangeFromExchange(string sourceName, string destinationName, string routingKey, CancellationToken cancellationToken)
         {
             if (sourceName == null)
@@ -751,6 +819,14 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="queueName">The Name of the Queue to be Bound</param>
+        /// <param name="exchangeName">The Name of the Exchange to Bind to</param>
+        /// <param name="routingKey">The Routing Key for this Queue Binding</param>
+        /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
+        /// <returns>A Task that will Complete upon successfully Binding a Queue to an Exchange</returns>
         public async Task BindQueueToExchange(string queueName, string exchangeName, string routingKey, CancellationToken cancellationToken)
         {
             if (queueName == null)
@@ -790,6 +866,14 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// Unbind a Queue from an Exchange
+        /// </summary>
+        /// <param name="queueName">The Name of the Queue to Unbind</param>
+        /// <param name="exchangeName">The Name of the Exchange</param>
+        /// <param name="routingKey">The Routing Key for this Queue Binding</param>
+        /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
+        /// <returns>A Task that will Complete upon successfully Unbinding a Queue from an Exchange</returns>
         public async Task UnbindQueueFromExchange(string queueName, string exchangeName, string routingKey, CancellationToken cancellationToken)
         {
             if (queueName == null)
@@ -829,6 +913,13 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// Create a Consumer that will call the provided Async Method when a Message is Received from the specified Queue
+        /// </summary>
+        /// <param name="queueName">The Name of the Queue to Start Consuming</param>
+        /// <param name="asyncMethod">The Async Method that will Handle Received Messages</param>
+        /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
+        /// <returns>A Task that will Complete upon successfully Creating a Queue Consumer</returns>
         public async Task CreateQueueConsumer(string queueName, ConsumerReceiveHandler asyncMethod, CancellationToken cancellationToken)
         {
             if (queueName == null)
@@ -880,6 +971,12 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// Destroy a Queue Consumer
+        /// </summary>
+        /// <param name="queueName">The Name of the Queue to Stop Consuming</param>
+        /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
+        /// <returns>A Task that will Complete upon successfully Destroying a Queue Consumer</returns>
         public async Task DestroyQueueConsumer(string queueName, CancellationToken cancellationToken)
         {
             if (queueName == null)
@@ -918,6 +1015,11 @@ namespace RICADO.RabbitMQ
             _consumerAsyncMethods.TryRemove(queueName, out removedMethod);
         }
 
+        /// <summary>
+        /// Register an Async Method to Handle Results for Message Publishing Attempts
+        /// </summary>
+        /// <param name="messageType">The Message Type this Method will Handle</param>
+        /// <param name="asyncMethod">The Async Method to Handle Results</param>
         public void RegisterPublishResultHandler(string messageType, PublishResultHandler asyncMethod)
         {
             if (messageType == null)
@@ -936,6 +1038,10 @@ namespace RICADO.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// Unregister an Async Method to Handle Results for Message Publishing Attempts
+        /// </summary>
+        /// <param name="messageType">The Message Type to Unregister</param>
         public void UnregisterPublishResultHandler(string messageType)
         {
             if (messageType == null)
@@ -948,6 +1054,12 @@ namespace RICADO.RabbitMQ
             _publishResultsAsyncMethods.TryRemove(messageType, out removedMethod);
         }
 
+        /// <summary>
+        /// Send a Message to be Published by the RabbitMQ Broker
+        /// </summary>
+        /// <param name="message">The Message to be Published</param>
+        /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
+        /// <returns>A Task that will Complete when the Message has been Accepted and Queued for Sending</returns>
         public async ValueTask Publish(PublishMessage message, CancellationToken cancellationToken)
         {
             if(IsShutdown == true)
@@ -984,6 +1096,12 @@ namespace RICADO.RabbitMQ
             });
         }
 
+        /// <summary>
+        /// Try to Send a Message to be Published by the RabbitMQ Broker
+        /// </summary>
+        /// <param name="message">The Message to be Published</param>
+        /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
+        /// <returns>A Task that will Complete with a Result to indicate if the Message has been Accepted and Queued for Sending</returns>
         public async ValueTask<bool> TryPublish(PublishMessage message, CancellationToken cancellationToken)
         {
             if(IsShutdown == true || IsConnected == false)
@@ -1003,13 +1121,24 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        public ValueTask SendAck(ulong deliveryTag, bool multiple = false)
+        #endregion
+
+
+        #region Internal Methods
+
+        /// <summary>
+        /// Send an Ack Response for one or more Delivery Tags to the RabbitMQ Broker
+        /// </summary>
+        /// <param name="deliveryTag">The Delivery Tag to Ack</param>
+        /// <param name="multiple">Whether all Delivery Tags prior to and including this Tag should be Ack'd</param>
+        /// <returns>A Task that will Complete upon successfully Sending an Ack Response to the RabbitMQ Broker</returns>
+        internal ValueTask SendAck(ulong deliveryTag, bool multiple = false)
         {
-            if(IsShutdown == true)
+            if (IsShutdown == true)
             {
                 throw new RabbitMQException("Cannot Ack a Message since the Connection is Shutdown");
             }
-            
+
             if (IsConnected == false)
             {
                 throw new RabbitMQException("Cannot Ack a Message while the Connection is Unavailable");
@@ -1027,7 +1156,13 @@ namespace RICADO.RabbitMQ
             return ValueTask.CompletedTask;
         }
 
-        public async ValueTask<bool> TrySendAck(ulong deliveryTag, bool multiple = false)
+        /// <summary>
+        /// Try to Send an Ack Response for one or more Delivery Tags to the RabbitMQ Broker
+        /// </summary>
+        /// <param name="deliveryTag">The Delivery Tag to Ack</param>
+        /// <param name="multiple">Whether all Delivery Tags prior to and including this Tag should be Ack'd</param>
+        /// <returns>A Task that will Complete with a Result to indicate if the Ack Response was Sent to the RabbitMQ Broker</returns>
+        internal async ValueTask<bool> TrySendAck(ulong deliveryTag, bool multiple = false)
         {
             if (IsShutdown == true || IsConnected == false)
             {
@@ -1046,7 +1181,14 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        public ValueTask SendNack(ulong deliveryTag, bool requeue, bool multiple = false)
+        /// <summary>
+        /// Send a Nack Response for one or more Delivery Tags to the RabbitMQ Broker
+        /// </summary>
+        /// <param name="deliveryTag">The Delivery Tag to Nack</param>
+        /// <param name="requeue">Whether the Delivery Tag(s) should be Requeued for Delivery by the RabbitMQ Broker</param>
+        /// <param name="multiple">Whether all Delivery Tags prior to and including this Tag should be Nack'd</param>
+        /// <returns>A Task that will Complete upon successfully Sending a Nack Response to the RabbitMQ Broker</returns>
+        internal ValueTask SendNack(ulong deliveryTag, bool requeue, bool multiple = false)
         {
             if (IsShutdown == true)
             {
@@ -1070,7 +1212,14 @@ namespace RICADO.RabbitMQ
             return ValueTask.CompletedTask;
         }
 
-        public async ValueTask<bool> TrySendNack(ulong deliveryTag, bool requeue, bool multiple = false)
+        /// <summary>
+        /// Try to Send a Nack Response for one or more Delivery Tags to the RabbitMQ Broker
+        /// </summary>
+        /// <param name="deliveryTag">The Delivery Tag to Nack</param>
+        /// <param name="requeue">Whether the Delivery Tag(s) should be Requeued for Delivery by the RabbitMQ Broker</param>
+        /// <param name="multiple">Whether all Delivery Tags prior to and including this Tag should be Nack'd</param>
+        /// <returns>A Task that will Complete with a Result to indicate if the Nack Response was Sent to the RabbitMQ Broker</returns>
+        internal async ValueTask<bool> TrySendNack(ulong deliveryTag, bool requeue, bool multiple = false)
         {
             if (IsShutdown == true || IsConnected == false)
             {
