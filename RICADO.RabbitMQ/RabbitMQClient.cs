@@ -1476,6 +1476,12 @@ namespace RICADO.RabbitMQ
                 return;
             }
 
+            if (e.Exception is ObjectDisposedException && e.Exception.Message == "The semaphore has been disposed.")
+            {
+                // TODO: Remove this temporary code when Pull-Request https://github.com/rabbitmq/rabbitmq-dotnet-client/pull/1015 is Merged and Released
+                return;
+            }
+
             ConnectionException(this, e.Exception);
         }
 
