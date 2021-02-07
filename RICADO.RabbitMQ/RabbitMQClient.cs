@@ -1708,7 +1708,10 @@ namespace RICADO.RabbitMQ
                     await TrySendAck(eventArgs.DeliveryTag);
 
                     // Remove the Tracked Message since we sent an Ack
-                    _consumerRedeliveredMessages.TryRemove(messageId.Value, out _);
+                    if (messageId.HasValue)
+                    {
+                        _consumerRedeliveredMessages.TryRemove(messageId.Value, out _);
+                    }
                 }
                 else if(result == ConsumerResultType.Discard)
                 {
