@@ -6,7 +6,7 @@ namespace RICADO.RabbitMQ
     {
         public Guid MessageID;
         public string MessageType;
-        public enPublishResult Result;
+        public PublishResultType Result;
         public int? FailureCode;
         public string FailureReason;
     }

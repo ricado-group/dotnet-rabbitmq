@@ -307,20 +307,16 @@ namespace RICADO.RabbitMQ
             }
 
             message.Type = properties.IsTypePresent() ? properties.Type : null;
-            message.Persistent = properties.IsDeliveryModePresent() ? properties.Persistent : false;
+            message.Persistent = properties.IsDeliveryModePresent() && properties.Persistent;
             message.ApplicationName = properties.IsAppIdPresent() ? properties.AppId : null;
             message.ReplyToQueueName = properties.IsReplyToPresent() ? properties.ReplyTo : null;
 
-            Guid messageId;
-
-            if(properties.IsMessageIdPresent() && Guid.TryParse(properties.MessageId, out messageId))
+            if(properties.IsMessageIdPresent() && Guid.TryParse(properties.MessageId, out Guid messageId))
             {
                 message.MessageID = messageId;
             }
 
-            Guid correlationId;
-
-            if(properties.IsCorrelationIdPresent() && Guid.TryParse(properties.CorrelationId, out correlationId))
+            if(properties.IsCorrelationIdPresent() && Guid.TryParse(properties.CorrelationId, out Guid correlationId))
             {
                 message.CorrelationID = correlationId;
             }

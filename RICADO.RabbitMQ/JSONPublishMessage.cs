@@ -32,14 +32,14 @@ namespace RICADO.RabbitMQ
         /// <param name="type">The Type of Message</param>
         /// <param name="mode">The Publishing Mode for this Message</param>
         /// <returns>A New <see cref="JSONPublishMessage"/> Instance ready to be Published</returns>
-        public static PublishMessage CreateNew(RabbitMQClient client, string exchange, string routingKey, JToken json, string type = "", enPublishMode mode = enPublishMode.BrokerConfirm)
+        public static PublishMessage CreateNew(RabbitMQClient client, string exchange, string routingKey, JToken json, string type = "", PublishMode mode = PublishMode.BrokerConfirm)
         {
             if(json == null)
             {
                 throw new ArgumentNullException(nameof(json));
             }
 
-            PublishMessage message = PublishMessage.CreateNew(client, exchange, routingKey, type, mode);
+            PublishMessage message = CreateNew(client, exchange, routingKey, type, mode);
 
             message.Body = Encoding.UTF8.GetBytes(json.ToString(Formatting.None));
             message.ContentType = ContentTypes.JSON;
@@ -58,14 +58,14 @@ namespace RICADO.RabbitMQ
         /// <param name="type">The Type of Message</param>
         /// <param name="mode">The Publishing Mode for this Message</param>
         /// <returns>A New <see cref="JSONPublishMessage"/> Instance ready to be Published</returns>
-        public static PublishMessage CreateNew(RabbitMQClient client, string replyTo, Guid receivedMessageId, JToken json, string type = "", enPublishMode mode = enPublishMode.BrokerConfirm)
+        public static PublishMessage CreateNew(RabbitMQClient client, string replyTo, Guid receivedMessageId, JToken json, string type = "", PublishMode mode = PublishMode.BrokerConfirm)
         {
             if (json == null)
             {
                 throw new ArgumentNullException(nameof(json));
             }
 
-            PublishMessage message = PublishMessage.CreateNew(client, replyTo, receivedMessageId, type, mode);
+            PublishMessage message = CreateNew(client, replyTo, receivedMessageId, type, mode);
 
             message.Body = Encoding.UTF8.GetBytes(json.ToString(Formatting.None));
             message.ContentType = ContentTypes.JSON;

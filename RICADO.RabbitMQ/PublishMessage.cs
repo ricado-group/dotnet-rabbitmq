@@ -11,7 +11,7 @@ namespace RICADO.RabbitMQ
         private Guid _messageId;
         private string _exchange;
         private string _routingKey;
-        private enPublishMode _mode;
+        private PublishMode _mode;
         private string _type;
 
         private ReadOnlyMemory<byte> _body;
@@ -27,12 +27,12 @@ namespace RICADO.RabbitMQ
         private string _replyTo;
 
         private ulong _deliveryTag = 0;
-        private object _deliveryTagLock = new object();
+        private readonly object _deliveryTagLock = new object();
 
         private DateTime _publishTimestamp = DateTime.MinValue;
-        private object _publishTimestampLock = new object();
+        private readonly object _publishTimestampLock = new object();
 
-        private CountdownEvent _retriesCountdown;
+        private readonly CountdownEvent _retriesCountdown;
 
         #endregion
 
@@ -83,7 +83,7 @@ namespace RICADO.RabbitMQ
         /// <summary>
         /// The Publishing Mode to handle interaction with the RabbitMQ Broker
         /// </summary>
-        public enPublishMode Mode
+        public PublishMode Mode
         {
             get
             {
@@ -331,7 +331,7 @@ namespace RICADO.RabbitMQ
         /// <param name="type">The Type of Message</param>
         /// <param name="mode">The Publishing Mode for this Message</param>
         /// <returns>A New <see cref="PublishMessage"/> Instance ready to be Customized before Publishing</returns>
-        public static PublishMessage CreateNew(RabbitMQClient client, string exchange, string routingKey, string type = "", enPublishMode mode = enPublishMode.BrokerConfirm)
+        public static PublishMessage CreateNew(RabbitMQClient client, string exchange, string routingKey, string type = "", PublishMode mode = PublishMode.BrokerConfirm)
         {
             if(client == null)
             {
@@ -354,7 +354,7 @@ namespace RICADO.RabbitMQ
                 RoutingKey = routingKey,
                 Mode = mode,
                 Type = type,
-                PublishTimeout = client.DefaultPublishTimeout.HasValue ? client.DefaultPublishTimeout.Value : client.HeartbeatInterval.Multiply(2),
+                PublishTimeout = client.DefaultPublishTimeout ?? client.HeartbeatInterval.Multiply(2),
                 PublishRetries = client.DefaultPublishRetries,
             };
         }
@@ -368,7 +368,7 @@ namespace RICADO.RabbitMQ
         /// <param name="type">The Type of Message</param>
         /// <param name="mode">The Publishing Mode for this Message</param>
         /// <returns>A New <see cref="PublishMessage"/> Instance ready to be Customized before Publishing</returns>
-        public static PublishMessage CreateNew(RabbitMQClient client, string replyTo, Guid receivedMessageId, string type = "", enPublishMode mode = enPublishMode.BrokerConfirm)
+        public static PublishMessage CreateNew(RabbitMQClient client, string replyTo, Guid receivedMessageId, string type = "", PublishMode mode = PublishMode.BrokerConfirm)
         {
             if (client == null)
             {
@@ -391,7 +391,7 @@ namespace RICADO.RabbitMQ
                 RoutingKey = replyTo,
                 Mode = mode,
                 Type = type,
-                PublishTimeout = client.DefaultPublishTimeout.HasValue ? client.DefaultPublishTimeout.Value : client.HeartbeatInterval.Multiply(2),
+                PublishTimeout = client.DefaultPublishTimeout ?? client.HeartbeatInterval.Multiply(2),
                 PublishRetries = client.DefaultPublishRetries,
                 CorrelationID = receivedMessageId,
             };

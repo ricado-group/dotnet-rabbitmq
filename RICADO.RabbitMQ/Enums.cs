@@ -3,7 +3,7 @@
     /// <summary>
     /// RabbitMQ Exchange Types
     /// </summary>
-    public enum enExchangeType
+    public enum ExchangeType
     {
         Direct,
         Fanout,
@@ -14,7 +14,7 @@
     /// <summary>
     /// Mode for Publishing Messages
     /// </summary>
-    public enum enPublishMode
+    public enum PublishMode
     {
         FireAndForget,
         BrokerConfirm,
@@ -23,11 +23,21 @@
     /// <summary>
     /// Results from a Message Publish Attempt
     /// </summary>
-    public enum enPublishResult
+    public enum PublishResultType
     {
         Success,
         BrokerError,
         Returned,
         Timeout,
+    }
+
+    /// <summary>
+    /// The Result returned by a Receiving Message Consumer
+    /// </summary>
+    public enum ConsumerResultType
+    {
+        Accept,
+        Requeue,
+        Discard,
     }
 }

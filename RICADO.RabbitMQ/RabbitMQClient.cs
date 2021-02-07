@@ -15,23 +15,23 @@ namespace RICADO.RabbitMQ
     {
         #region Constants
 
-        internal const int DEFAULT_CONNECTION_TIMEOUT = 2000;
-        internal const int DEFAULT_CONNECTION_RECOVERY_INTERVAL = 2000;
-        internal const int DEFAULT_HEART_BEAT_INTERVAL = 5000;
-        internal const int DEFAULT_READ_TIMEOUT = 4000;
-        internal const int DEFAULT_WRITE_TIMEOUT = 2000;
+        internal const int DefaultConnectionTimeout = 2000;
+        internal const int DefaultConnectionRecoveryInterval = 2000;
+        internal const int DefaultHeartbeatInterval = 5000;
+        internal const int DefaultReadTimeout = 4000;
+        internal const int DefaultWriteTimeout = 2000;
 
         #endregion
 
 
         #region Private Properties
 
-        private string _clientName;
-        private string _applicationName;
-        private string _username;
-        private string _password;
-        private string _virtualHost;
-        private ICollection<string> _servers;
+        private readonly string _clientName;
+        private readonly string _applicationName;
+        private readonly string _username;
+        private readonly string _password;
+        private readonly string _virtualHost;
+        private readonly ICollection<string> _servers;
 
         private ConnectionFactory _connectionFactory;
         private IAutorecoveringConnection _connection;
@@ -39,17 +39,17 @@ namespace RICADO.RabbitMQ
         private AsyncEventingBasicConsumer _consumer;
         private CancellationTokenSource _consumerCts;
 
-        private ConcurrentDictionary<string, ConsumerReceiveHandler> _consumerAsyncMethods = new ConcurrentDictionary<string, ConsumerReceiveHandler>();
-        private ConcurrentDictionary<Guid, RedeliveredMessage> _consumerRedeliveredMessages = new ConcurrentDictionary<Guid, RedeliveredMessage>();
+        private readonly ConcurrentDictionary<string, ConsumerReceiveHandler> _consumerAsyncMethods = new ConcurrentDictionary<string, ConsumerReceiveHandler>();
+        private readonly ConcurrentDictionary<Guid, RedeliveredMessage> _consumerRedeliveredMessages = new ConcurrentDictionary<Guid, RedeliveredMessage>();
 
-        private SemaphoreSlim _channelSemaphore = new SemaphoreSlim(1, 1);
+        private readonly SemaphoreSlim _channelSemaphore = new SemaphoreSlim(1, 1);
 
-        private ConcurrentDictionary<Guid, PublishMessage> _publishMessages = new ConcurrentDictionary<Guid, PublishMessage>();
-        private SemaphoreSlim _publishSemaphore = new SemaphoreSlim(1, 1);
+        private readonly ConcurrentDictionary<Guid, PublishMessage> _publishMessages = new ConcurrentDictionary<Guid, PublishMessage>();
+        private readonly SemaphoreSlim _publishSemaphore = new SemaphoreSlim(1, 1);
         private Task _publishMessagesTask;
         private CancellationTokenSource _publishMessagesCts;
 
-        private ConcurrentDictionary<string, PublishResultHandler> _publishResultsAsyncMethods = new ConcurrentDictionary<string, PublishResultHandler>();
+        private readonly ConcurrentDictionary<string, PublishResultHandler> _publishResultsAsyncMethods = new ConcurrentDictionary<string, PublishResultHandler>();
         private Channel<PublishResult> _publishResultsChannel;
         private SemaphoreSlim _publishResultsSemaphore;
         private CancellationTokenSource _publishResultsCts;
@@ -59,10 +59,10 @@ namespace RICADO.RabbitMQ
         private int _defaultPublishRetries = 3;
 
         private ulong _lastBrokerDeliveryTag = 0;
-        private object _lastBrokerDeliveryTagLock = new object();
+        private readonly object _lastBrokerDeliveryTagLock = new object();
 
         private bool _connectionShutdown = false;
-        private object _connectionShutdownLock = new object();
+        private readonly object _connectionShutdownLock = new object();
 
         #endregion
 
@@ -95,68 +95,32 @@ namespace RICADO.RabbitMQ
         /// <summary>
         /// The Name for this Client (shown in the RabbitMQ Management UI)
         /// </summary>
-        public string ClientName
-        {
-            get
-            {
-                return _clientName;
-            }
-        }
+        public string ClientName => _clientName;
 
         /// <summary>
         /// The Name of the Application that is utilizing this Client
         /// </summary>
-        public string ApplicationName
-        {
-            get
-            {
-                return _applicationName;
-            }
-        }
+        public string ApplicationName => _applicationName;
 
         /// <summary>
         /// The Username for Authentication with the RabbitMQ Broker
         /// </summary>
-        public string Username
-        {
-            get
-            {
-                return _username;
-            }
-        }
+        public string Username => _username;
 
         /// <summary>
         /// The Password for Authentication with RabbitMQ Broker
         /// </summary>
-        public string Password
-        {
-            get
-            {
-                return _password;
-            }
-        }
+        public string Password => _password;
 
         /// <summary>
         /// The VirtualHost to utilize on the RabbitMQ Broker
         /// </summary>
-        public string VirtualHost
-        {
-            get
-            {
-                return _virtualHost;
-            }
-        }
+        public string VirtualHost => _virtualHost;
 
         /// <summary>
         /// A Collection of DNS Names or IP Addresses for RabbitMQ Brokers
         /// </summary>
-        public ICollection<string> Servers
-        {
-            get
-            {
-                return _servers;
-            }
-        }
+        public ICollection<string> Servers => _servers;
 
         /// <summary>
         /// The Port of the RabbitMQ Broker - Defaults to <code>5672</code> for Non-TLS Connections and <code>5671</code> for TLS Connections
@@ -442,13 +406,13 @@ namespace RICADO.RabbitMQ
 
                     Port = AmqpTcpEndpoint.UseDefaultPort,
 
-                    ContinuationTimeout = TimeSpan.FromMilliseconds(DEFAULT_READ_TIMEOUT + DEFAULT_WRITE_TIMEOUT),
-                    HandshakeContinuationTimeout = TimeSpan.FromMilliseconds(DEFAULT_READ_TIMEOUT + DEFAULT_WRITE_TIMEOUT),
-                    NetworkRecoveryInterval = TimeSpan.FromMilliseconds(DEFAULT_CONNECTION_RECOVERY_INTERVAL),
-                    RequestedConnectionTimeout = TimeSpan.FromMilliseconds(DEFAULT_CONNECTION_TIMEOUT),
-                    RequestedHeartbeat = TimeSpan.FromMilliseconds(DEFAULT_HEART_BEAT_INTERVAL),
-                    SocketReadTimeout = TimeSpan.FromMilliseconds(DEFAULT_READ_TIMEOUT),
-                    SocketWriteTimeout = TimeSpan.FromMilliseconds(DEFAULT_WRITE_TIMEOUT),
+                    ContinuationTimeout = TimeSpan.FromMilliseconds(DefaultReadTimeout + DefaultWriteTimeout),
+                    HandshakeContinuationTimeout = TimeSpan.FromMilliseconds(DefaultReadTimeout + DefaultWriteTimeout),
+                    NetworkRecoveryInterval = TimeSpan.FromMilliseconds(DefaultConnectionRecoveryInterval),
+                    RequestedConnectionTimeout = TimeSpan.FromMilliseconds(DefaultConnectionTimeout),
+                    RequestedHeartbeat = TimeSpan.FromMilliseconds(DefaultHeartbeatInterval),
+                    SocketReadTimeout = TimeSpan.FromMilliseconds(DefaultReadTimeout),
+                    SocketWriteTimeout = TimeSpan.FromMilliseconds(DefaultWriteTimeout),
                 };
 
                 if(useSsl == true)
@@ -492,10 +456,10 @@ namespace RICADO.RabbitMQ
             _publishResultsChannel = Channel.CreateUnbounded<PublishResult>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = false, AllowSynchronousContinuations = false });
             _publishResultsSemaphore = new SemaphoreSlim(ConsumerConcurrency, ConsumerConcurrency);
             _publishResultsCts = new CancellationTokenSource();
-            _publishResultsTask = Task.Run(publishResultsHandler);
+            _publishResultsTask = Task.Run(publishResultsHandler, CancellationToken.None);
 
             _publishMessagesCts = new CancellationTokenSource();
-            _publishMessagesTask = Task.Run(publishMessagesHandler);
+            _publishMessagesTask = Task.Run(publishMessagesHandler, CancellationToken.None);
         }
 
         /// <summary>
@@ -572,7 +536,7 @@ namespace RICADO.RabbitMQ
         /// <param name="autoDelete">Whether the Exchange should be Deleted Automatically when it is no longer Bound or this Client Disconnects</param>
         /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
         /// <returns>A Task that will Complete upon successfully Declaring an Exchange</returns>
-        public async Task DeclareExchange(string name, enExchangeType type, bool durable, bool autoDelete, CancellationToken cancellationToken)
+        public async Task DeclareExchange(string name, ExchangeType type, bool durable, bool autoDelete, CancellationToken cancellationToken)
         {
             if (name == null)
             {
@@ -594,6 +558,41 @@ namespace RICADO.RabbitMQ
                 }
 
                 _channel.ExchangeDeclare(name, type.ToString().ToLower(), durable, autoDelete);
+            }
+            finally
+            {
+                _channelSemaphore.Release();
+            }
+        }
+
+        /// <summary>
+        /// Confirm an Exchange with the specified Name exists
+        /// </summary>
+        /// <param name="name">The Name of the Exchange to Passively Declare</param>
+        /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
+        /// <returns>A Task that will Complete upon successfully Confirming the Exchange exists</returns>
+        public async Task DeclareExchangePassive(string name, CancellationToken cancellationToken)
+        {
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
+            if (IsShutdown == true)
+            {
+                throw new RabbitMQException("Cannot Passively Declare an Exchange since the Connection is Shutdown");
+            }
+
+            await _channelSemaphore.WaitAsync(cancellationToken);
+
+            try
+            {
+                if (IsConnected == false)
+                {
+                    throw new RabbitMQException("Cannot Passively Declare an Exchange while the Connection is Unavailable");
+                }
+
+                _channel.ExchangeDeclarePassive(name);
             }
             finally
             {
@@ -680,6 +679,46 @@ namespace RICADO.RabbitMQ
                 if (result == null || result.QueueName != name)
                 {
                     throw new RabbitMQException("Failed to Declare the Queue - The Broker Queue Name did not match the Client Queue Name");
+                }
+            }
+            finally
+            {
+                _channelSemaphore.Release();
+            }
+        }
+
+        /// <summary>
+        /// Confirm a Queue with the specified Name exists
+        /// </summary>
+        /// <param name="name">The Name of the Queue to Passively Declare</param>
+        /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
+        /// <returns>A Task that will Complete upon successfully Confirming the Queue exists</returns>
+        public async Task DeclareQueuePassive(string name, CancellationToken cancellationToken)
+        {
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
+            if (IsShutdown == true)
+            {
+                throw new RabbitMQException("Cannot Passively Declare a Queue since the Connection is Shutdown");
+            }
+
+            await _channelSemaphore.WaitAsync(cancellationToken);
+
+            try
+            {
+                if (IsConnected == false)
+                {
+                    throw new RabbitMQException("Cannot Passively Declare a Queue while the Connection is Unavailable");
+                }
+
+                QueueDeclareOk result = _channel.QueueDeclarePassive(name);
+
+                if (result == null || (name.Length > 0 && result.QueueName != name))
+                {
+                    throw new RabbitMQException("Failed to Passively Declare the Queue - The Broker Queue Name did not match the Client Queue Name");
                 }
             }
             finally
@@ -958,9 +997,7 @@ namespace RICADO.RabbitMQ
 
                 if (_channel.BasicConsume(queueName, false, queueName, _consumer) != queueName)
                 {
-                    ConsumerReceiveHandler removedMethod;
-
-                    _consumerAsyncMethods.TryRemove(queueName, out removedMethod);
+                    _consumerAsyncMethods.TryRemove(queueName, out _);
 
                     throw new RabbitMQException("Failed to Create the Queue Consumer - The Broker Consumer Tag did not match the Client Consumer Tag");
                 }
@@ -1010,9 +1047,7 @@ namespace RICADO.RabbitMQ
                 _channelSemaphore.Release();
             }
 
-            ConsumerReceiveHandler removedMethod;
-
-            _consumerAsyncMethods.TryRemove(queueName, out removedMethod);
+            _consumerAsyncMethods.TryRemove(queueName, out _);
         }
 
         /// <summary>
@@ -1049,9 +1084,7 @@ namespace RICADO.RabbitMQ
                 throw new ArgumentNullException(nameof(messageType));
             }
 
-            PublishResultHandler removedMethod;
-
-            _publishResultsAsyncMethods.TryRemove(messageType, out removedMethod);
+            _publishResultsAsyncMethods.TryRemove(messageType, out _);
         }
 
         /// <summary>
@@ -1072,7 +1105,7 @@ namespace RICADO.RabbitMQ
                 throw new RabbitMQException("Cannot Publish a Message while the Connection is Unavailable");
             }
 
-            if (_publishSemaphore.Wait(0) == false)
+            if (_publishSemaphore.Wait(0, cancellationToken) == false)
             {
                 await _publishSemaphore.WaitAsync(cancellationToken);
             }
@@ -1453,10 +1486,7 @@ namespace RICADO.RabbitMQ
 
         private void connectionRecoverySucceeded(object sender, EventArgs e)
         {
-            if(ConnectionRecoverySuccess != null)
-            {
-                ConnectionRecoverySuccess(this);
-            }
+            ConnectionRecoverySuccess?.Invoke(this);
         }
 
         private void connectionRecoveryError(object sender, ConnectionRecoveryErrorEventArgs e)
@@ -1541,7 +1571,7 @@ namespace RICADO.RabbitMQ
 
             foreach (PublishMessage message in _publishMessages.Values.Where(message => message.DeliveryTag >= firstDeliveryTag && message.DeliveryTag <= lastDeliveryTag))
             {
-                transitionPublishMessageToResult(message.MessageID, enPublishResult.Success);
+                transitionPublishMessageToResult(message.MessageID, PublishResultType.Success);
             }
         }
 
@@ -1571,7 +1601,7 @@ namespace RICADO.RabbitMQ
 
             foreach (PublishMessage message in _publishMessages.Values.Where(message => message.DeliveryTag >= firstDeliveryTag && message.DeliveryTag <= lastDeliveryTag))
             {
-                transitionPublishMessageToResult(message.MessageID, enPublishResult.BrokerError);
+                transitionPublishMessageToResult(message.MessageID, PublishResultType.BrokerError);
             }
         }
 
@@ -1582,9 +1612,7 @@ namespace RICADO.RabbitMQ
                 return;
             }
 
-            Guid messageId;
-
-            if (Guid.TryParse(e.BasicProperties.MessageId, out messageId) == false)
+            if (Guid.TryParse(e.BasicProperties.MessageId, out Guid messageId) == false)
             {
                 return;
             }
@@ -1594,7 +1622,7 @@ namespace RICADO.RabbitMQ
                 return;
             }
 
-            transitionPublishMessageToResult(messageId, enPublishResult.Returned, e.ReplyCode, e.ReplyText);
+            transitionPublishMessageToResult(messageId, PublishResultType.Returned, e.ReplyCode, e.ReplyText);
         }
 
         private void channelCallbackException(object sender, CallbackExceptionEventArgs e)
@@ -1651,9 +1679,7 @@ namespace RICADO.RabbitMQ
                 trackConsumerRedeliveredMessage(messageId.Value, eventArgs);
             }
 
-            ConsumerReceiveHandler asyncMethod;
-
-            if (_consumerAsyncMethods.TryGetValue(eventArgs.ConsumerTag, out asyncMethod) == false)
+            if (_consumerAsyncMethods.TryGetValue(eventArgs.ConsumerTag, out ConsumerReceiveHandler asyncMethod) == false)
             {
                 await handleNackForConsumerReceived(messageId, eventArgs);
                 return;
@@ -1675,13 +1701,18 @@ namespace RICADO.RabbitMQ
 
             try
             {
-                if(await asyncMethod(receivedMessage, _consumerCts.Token))
+                ConsumerResultType result = await asyncMethod(receivedMessage, _consumerCts.Token);
+
+                if (result == ConsumerResultType.Accept)
                 {
                     await TrySendAck(eventArgs.DeliveryTag);
 
                     // Remove the Tracked Message since we sent an Ack
-                    RedeliveredMessage removedMessage;
-                    _consumerRedeliveredMessages.TryRemove(messageId.Value, out removedMessage);
+                    _consumerRedeliveredMessages.TryRemove(messageId.Value, out _);
+                }
+                else if(result == ConsumerResultType.Discard)
+                {
+                    await handleNackForConsumerReceived(messageId, eventArgs, true);
                 }
                 else
                 {
@@ -1694,16 +1725,13 @@ namespace RICADO.RabbitMQ
             }
             catch (Exception e)
             {
-                if(ConsumerException != null)
-                {
-                    ConsumerException(this, e);
-                }
+                ConsumerException?.Invoke(this, e);
 
                 await handleNackForConsumerReceived(messageId, eventArgs);
             }
         }
 
-        private async Task handleNackForConsumerReceived(Guid? messageId, BasicDeliverEventArgs eventArgs)
+        private async Task handleNackForConsumerReceived(Guid? messageId, BasicDeliverEventArgs eventArgs, bool forceNoRequeue = false)
         {
             try
             {
@@ -1725,11 +1753,10 @@ namespace RICADO.RabbitMQ
                     return;
                 }
 
-                bool redeliver = true;
+                bool redeliver = !forceNoRequeue;
                 TimeSpan nackDelay = TimeSpan.Zero;
-                RedeliveredMessage message;
 
-                if (_consumerRedeliveredMessages.TryGetValue(messageId.Value, out message))
+                if (forceNoRequeue == false && _consumerRedeliveredMessages.TryGetValue(messageId.Value, out RedeliveredMessage message))
                 {
                     if(message.LastTimestamp.Subtract(message.FirstTimestamp).TotalHours >= 3 && message.RedeliveredCount >= 25)
                     {
@@ -1762,8 +1789,7 @@ namespace RICADO.RabbitMQ
                 if (redeliver == false)
                 {
                     // Remove the Tracked Message as we expect it won't be redelivered again
-                    RedeliveredMessage removedMessage;
-                    _consumerRedeliveredMessages.TryRemove(messageId.Value, out removedMessage);
+                    _consumerRedeliveredMessages.TryRemove(messageId.Value, out _);
                 }
             }
             catch (AlreadyClosedException)
@@ -1771,10 +1797,7 @@ namespace RICADO.RabbitMQ
             }
             catch (Exception e)
             {
-                if (ConsumerException != null)
-                {
-                    ConsumerException(this, e);
-                }
+                ConsumerException?.Invoke(this, e);
             }
         }
 
@@ -1782,9 +1805,7 @@ namespace RICADO.RabbitMQ
         {
             foreach (RedeliveredMessage staleMessage in _consumerRedeliveredMessages.Values.Where(message => DateTime.Now.Subtract(message.LastTimestamp).TotalHours >= 2))
             {
-                RedeliveredMessage removedMessage;
-
-                _consumerRedeliveredMessages.TryRemove(staleMessage.MessageID, out removedMessage);
+                _consumerRedeliveredMessages.TryRemove(staleMessage.MessageID, out _);
             }
 
             if(eventArgs.Redelivered == false)
@@ -1805,23 +1826,6 @@ namespace RICADO.RabbitMQ
 
                 return existingMessage;
             });
-        }
-
-        private Guid? extractMessageId(BasicDeliverEventArgs eventArgs)
-        {
-            if(eventArgs == null || eventArgs.BasicProperties == null || eventArgs.BasicProperties.IsMessageIdPresent() == false)
-            {
-                return null;
-            }
-
-            Guid messageId;
-
-            if(Guid.TryParse(eventArgs.BasicProperties.MessageId, out messageId) && messageId != Guid.Empty)
-            {
-                return messageId;
-            }
-
-            return null;
         }
 
         private async Task publishMessagesHandler()
@@ -1845,7 +1849,7 @@ namespace RICADO.RabbitMQ
                             }
                             else
                             {
-                                transitionPublishMessageToResult(message.MessageID, enPublishResult.Timeout);
+                                transitionPublishMessageToResult(message.MessageID, PublishResultType.Timeout);
                             }
                         }
                         catch (OperationCanceledException)
@@ -1854,10 +1858,7 @@ namespace RICADO.RabbitMQ
                         }
                         catch (Exception e)
                         {
-                            if(PublishException != null)
-                            {
-                                PublishException(this, e);
-                            }
+                            PublishException?.Invoke(this, e);
                         }
                     }
 
@@ -1869,11 +1870,9 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        private void transitionPublishMessageToResult(Guid messageId, enPublishResult result, int? failureCode = null, string failureReason = null)
+        private void transitionPublishMessageToResult(Guid messageId, PublishResultType result, int? failureCode = null, string failureReason = null)
         {
-            PublishMessage message;
-
-            if(_publishMessages.TryRemove(messageId, out message))
+            if(_publishMessages.TryRemove(messageId, out PublishMessage message))
             {
                 try
                 {
@@ -1888,10 +1887,7 @@ namespace RICADO.RabbitMQ
                 }
                 catch (Exception e)
                 {
-                    if (PublishException != null)
-                    {
-                        PublishException(this, e);
-                    }
+                    PublishException?.Invoke(this, e);
                 }
             }
         }
@@ -1945,15 +1941,27 @@ namespace RICADO.RabbitMQ
             }
             catch (Exception e)
             {
-                if(PublishException != null)
-                {
-                    PublishException(this, e);
-                }
+                PublishException?.Invoke(this, e);
             }
             finally
             {
                 semaphore.Release();
             }
+        }
+
+        private static Guid? extractMessageId(BasicDeliverEventArgs eventArgs)
+        {
+            if (eventArgs == null || eventArgs.BasicProperties == null || eventArgs.BasicProperties.IsMessageIdPresent() == false)
+            {
+                return null;
+            }
+
+            if (Guid.TryParse(eventArgs.BasicProperties.MessageId, out Guid messageId) && messageId != Guid.Empty)
+            {
+                return messageId;
+            }
+
+            return null;
         }
 
         #endregion

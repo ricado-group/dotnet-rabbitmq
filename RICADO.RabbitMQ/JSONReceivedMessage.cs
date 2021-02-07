@@ -54,7 +54,7 @@ namespace RICADO.RabbitMQ
                 return;
             }
 
-            string jsonString = UTF8Encoding.UTF8.GetString(base.Body.ToArray());
+            string jsonString = Encoding.UTF8.GetString(base.Body.ToArray());
 
             if(jsonString == null || jsonString.Length == 0)
             {

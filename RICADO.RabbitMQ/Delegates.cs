@@ -9,8 +9,8 @@ namespace RICADO.RabbitMQ
     /// </summary>
     /// <param name="message">The Message Received</param>
     /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
-    /// <returns>Whether the Message was Successfully Processed and Persisted</returns>
-    public delegate Task<bool> ConsumerReceiveHandler(ReceivedMessage message, CancellationToken cancellationToken);
+    /// <returns>Whether the Message should be Accepted, Requeued or Discarded</returns>
+    public delegate Task<ConsumerResultType> ConsumerReceiveHandler(ReceivedMessage message, CancellationToken cancellationToken);
 
     /// <summary>
     /// A Delegate to Handle Results from an Attempt to Publish a Message to a RabbitMQ Broker
@@ -21,7 +21,7 @@ namespace RICADO.RabbitMQ
     /// <param name="failureReason">An Optional Failure Reason received from the RabbitMQ Broker</param>
     /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
     /// <returns>A Task that eventually Completes</returns>
-    public delegate Task PublishResultHandler(Guid messageId, enPublishResult result, int? failureCode, string failureReason, CancellationToken cancellationToken);
+    public delegate Task PublishResultHandler(Guid messageId, PublishResultType result, int? failureCode, string failureReason, CancellationToken cancellationToken);
     
     /// <summary>
     /// A Delegate to Handle Exceptions raised as Events
