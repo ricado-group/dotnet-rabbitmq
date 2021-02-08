@@ -1408,7 +1408,7 @@ namespace RICADO.RabbitMQ
                                 prefetchCount = (ushort)_connectionFactory.ConsumerDispatchConcurrency;
                             }
 
-                            _channel.BasicQos(0, prefetchCount, true);
+                            _channel.BasicQos(0, prefetchCount, false);
 
                             _channel.ConfirmSelect();
 
