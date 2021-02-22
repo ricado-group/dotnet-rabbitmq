@@ -67,29 +67,6 @@ namespace RICADO.RabbitMQ
         #endregion
 
 
-        #region Internal Properties
-
-        internal ulong LastBrokerDeliveryTag
-        {
-            get
-            {
-                lock (_lastBrokerDeliveryTagLock)
-                {
-                    return _lastBrokerDeliveryTag;
-                }
-            }
-            set
-            {
-                lock (_lastBrokerDeliveryTagLock)
-                {
-                    _lastBrokerDeliveryTag = value;
-                }
-            }
-        }
-
-        #endregion
-
-
         #region Public Properties
 
         /// <summary>
@@ -445,7 +422,7 @@ namespace RICADO.RabbitMQ
         /// <returns>A Task that will Complete upon successful Initialization</returns>
         public async Task Initialize(CancellationToken cancellationToken)
         {
-            LastBrokerDeliveryTag = 0;
+            _lastBrokerDeliveryTag = 0;
 
             IsShutdown = false;
             
@@ -1110,13 +1087,34 @@ namespace RICADO.RabbitMQ
                 await _publishSemaphore.WaitAsync(cancellationToken);
             }
 
+            bool removeMessageOnException = false;
+
             try
             {
+                if(_publishMessages.TryAdd(message.MessageID, message))
+                {
+                    removeMessageOnException = true;
+                }
+
                 message.Publish(_channel);
             }
             catch (AlreadyClosedException e)
             {
+                if(removeMessageOnException)
+                {
+                    _publishMessages.TryRemove(message.MessageID, out _);
+                }
+
                 throw new RabbitMQException("Failed to Publish a Message - The Connection is Closed", e);
+            }
+            catch (Exception)
+            {
+                if (removeMessageOnException)
+                {
+                    _publishMessages.TryRemove(message.MessageID, out _);
+                }
+
+                throw;
             }
             finally
             {
@@ -1560,19 +1558,22 @@ namespace RICADO.RabbitMQ
             ulong firstDeliveryTag = e.DeliveryTag;
             ulong lastDeliveryTag = e.DeliveryTag;
 
-            if(e.Multiple == true)
+            lock (_lastBrokerDeliveryTagLock)
             {
-                if(LastBrokerDeliveryTag > 0 && e.DeliveryTag > LastBrokerDeliveryTag)
+                if (e.Multiple == true)
                 {
-                    firstDeliveryTag = LastBrokerDeliveryTag;
+                    if (_lastBrokerDeliveryTag > 0 && e.DeliveryTag > _lastBrokerDeliveryTag)
+                    {
+                        firstDeliveryTag = _lastBrokerDeliveryTag;
+                    }
+                    else if (_lastBrokerDeliveryTag == 0)
+                    {
+                        firstDeliveryTag = 1;
+                    }
                 }
-                else if(LastBrokerDeliveryTag == 0)
-                {
-                    firstDeliveryTag = 1;
-                }
-            }
 
-            LastBrokerDeliveryTag = e.DeliveryTag;
+                _lastBrokerDeliveryTag = e.DeliveryTag;
+            }
 
             foreach (PublishMessage message in _publishMessages.Values.Where(message => message.DeliveryTag >= firstDeliveryTag && message.DeliveryTag <= lastDeliveryTag))
             {
@@ -1590,19 +1591,22 @@ namespace RICADO.RabbitMQ
             ulong firstDeliveryTag = e.DeliveryTag;
             ulong lastDeliveryTag = e.DeliveryTag;
 
-            if (e.Multiple == true)
+            lock (_lastBrokerDeliveryTagLock)
             {
-                if (LastBrokerDeliveryTag > 0 && e.DeliveryTag > LastBrokerDeliveryTag)
+                if (e.Multiple == true)
                 {
-                    firstDeliveryTag = LastBrokerDeliveryTag;
+                    if (_lastBrokerDeliveryTag > 0 && e.DeliveryTag > _lastBrokerDeliveryTag)
+                    {
+                        firstDeliveryTag = _lastBrokerDeliveryTag;
+                    }
+                    else if (_lastBrokerDeliveryTag == 0)
+                    {
+                        firstDeliveryTag = 1;
+                    }
                 }
-                else if (LastBrokerDeliveryTag == 0)
-                {
-                    firstDeliveryTag = 1;
-                }
-            }
 
-            LastBrokerDeliveryTag = e.DeliveryTag;
+                _lastBrokerDeliveryTag = e.DeliveryTag;
+            }
 
             foreach (PublishMessage message in _publishMessages.Values.Where(message => message.DeliveryTag >= firstDeliveryTag && message.DeliveryTag <= lastDeliveryTag))
             {
@@ -1811,7 +1815,7 @@ namespace RICADO.RabbitMQ
 
         private void trackConsumerRedeliveredMessage(Guid messageId, BasicDeliverEventArgs eventArgs)
         {
-            foreach (RedeliveredMessage staleMessage in _consumerRedeliveredMessages.Values.Where(message => DateTime.Now.Subtract(message.LastTimestamp).TotalHours >= 2))
+            foreach (RedeliveredMessage staleMessage in _consumerRedeliveredMessages.Values.Where(message => DateTime.UtcNow.Subtract(message.LastTimestamp).TotalHours >= 2))
             {
                 _consumerRedeliveredMessages.TryRemove(staleMessage.MessageID, out _);
             }
@@ -1824,12 +1828,12 @@ namespace RICADO.RabbitMQ
             _consumerRedeliveredMessages.AddOrUpdate(messageId, new RedeliveredMessage
             {
                 MessageID = messageId,
-                FirstTimestamp = DateTime.Now,
-                LastTimestamp = DateTime.Now,
+                FirstTimestamp = DateTime.UtcNow,
+                LastTimestamp = DateTime.UtcNow,
                 RedeliveredCount = 1,
             }, (existingKey, existingMessage) =>
             {
-                existingMessage.LastTimestamp = DateTime.Now;
+                existingMessage.LastTimestamp = DateTime.UtcNow;
                 existingMessage.RedeliveredCount++;
 
                 return existingMessage;
@@ -1844,7 +1848,7 @@ namespace RICADO.RabbitMQ
             {
                 while(cancellationToken.IsCancellationRequested == false)
                 {
-                    foreach(PublishMessage message in _publishMessages.Values.Where(message => DateTime.Now.Subtract(message.PublishTimestamp) >= message.PublishTimeout))
+                    foreach(PublishMessage message in _publishMessages.Values.Where(message => DateTime.UtcNow.Subtract(message.PublishTimestamp) >= message.PublishTimeout))
                     {
                         try
                         {

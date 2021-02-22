@@ -463,7 +463,7 @@ namespace RICADO.RabbitMQ
 
             lock (_publishTimestampLock)
             {
-                _publishTimestamp = DateTime.Now;
+                _publishTimestamp = DateTime.UtcNow;
             }
 
             _retriesCountdown.Signal();
@@ -473,7 +473,7 @@ namespace RICADO.RabbitMQ
         {
             lock (_publishTimestampLock)
             {
-                _publishTimestamp = DateTime.Now;
+                _publishTimestamp = DateTime.UtcNow;
             }
 
             _retriesCountdown.Signal();
