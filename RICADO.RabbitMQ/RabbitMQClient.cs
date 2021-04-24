@@ -58,9 +58,6 @@ namespace RICADO.RabbitMQ
         private TimeSpan? _defaultPublishTimeout;
         private int _defaultPublishRetries = 3;
 
-        private ulong _lastBrokerDeliveryTag = 0;
-        private readonly object _lastBrokerDeliveryTagLock = new object();
-
         private bool _connectionShutdown = false;
         private readonly object _connectionShutdownLock = new object();
 
@@ -422,8 +419,6 @@ namespace RICADO.RabbitMQ
         /// <returns>A Task that will Complete upon successful Initialization</returns>
         public async Task Initialize(CancellationToken cancellationToken)
         {
-            _lastBrokerDeliveryTag = 0;
-
             IsShutdown = false;
             
             await initializeConnection(cancellationToken);
@@ -1555,27 +1550,7 @@ namespace RICADO.RabbitMQ
                 return;
             }
 
-            ulong firstDeliveryTag = e.DeliveryTag;
-            ulong lastDeliveryTag = e.DeliveryTag;
-
-            lock (_lastBrokerDeliveryTagLock)
-            {
-                if (e.Multiple == true)
-                {
-                    if (_lastBrokerDeliveryTag > 0 && e.DeliveryTag > _lastBrokerDeliveryTag)
-                    {
-                        firstDeliveryTag = _lastBrokerDeliveryTag;
-                    }
-                    else if (_lastBrokerDeliveryTag == 0)
-                    {
-                        firstDeliveryTag = 1;
-                    }
-                }
-
-                _lastBrokerDeliveryTag = e.DeliveryTag;
-            }
-
-            foreach (PublishMessage message in _publishMessages.Values.Where(message => message.DeliveryTag >= firstDeliveryTag && message.DeliveryTag <= lastDeliveryTag))
+            foreach (PublishMessage message in _publishMessages.Values.Where(message => message.DeliveryTag == e.DeliveryTag || (e.Multiple == true && message.DeliveryTag <= e.DeliveryTag)))
             {
                 transitionPublishMessageToResult(message.MessageID, PublishResultType.Success);
             }
@@ -1588,27 +1563,7 @@ namespace RICADO.RabbitMQ
                 return;
             }
 
-            ulong firstDeliveryTag = e.DeliveryTag;
-            ulong lastDeliveryTag = e.DeliveryTag;
-
-            lock (_lastBrokerDeliveryTagLock)
-            {
-                if (e.Multiple == true)
-                {
-                    if (_lastBrokerDeliveryTag > 0 && e.DeliveryTag > _lastBrokerDeliveryTag)
-                    {
-                        firstDeliveryTag = _lastBrokerDeliveryTag;
-                    }
-                    else if (_lastBrokerDeliveryTag == 0)
-                    {
-                        firstDeliveryTag = 1;
-                    }
-                }
-
-                _lastBrokerDeliveryTag = e.DeliveryTag;
-            }
-
-            foreach (PublishMessage message in _publishMessages.Values.Where(message => message.DeliveryTag >= firstDeliveryTag && message.DeliveryTag <= lastDeliveryTag))
+            foreach (PublishMessage message in _publishMessages.Values.Where(message => message.DeliveryTag == e.DeliveryTag || (e.Multiple == true && message.DeliveryTag <= e.DeliveryTag)))
             {
                 transitionPublishMessageToResult(message.MessageID, PublishResultType.BrokerError);
             }
