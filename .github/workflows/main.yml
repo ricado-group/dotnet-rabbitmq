@@ -5,7 +5,7 @@ name: Main Automated Builds
 on:
   push:
     branches:
-      - main
+      - master
     tags:
       - '*.*.*'
 
