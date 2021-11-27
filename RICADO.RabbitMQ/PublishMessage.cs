@@ -8,7 +8,7 @@ namespace RICADO.RabbitMQ
     {
         #region Private Properties
 
-        private Guid _messageId;
+        private readonly Guid _messageId;
         private string _exchange;
         private string _routingKey;
         private PublishMode _mode;
