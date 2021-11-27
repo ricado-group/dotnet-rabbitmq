@@ -1,10 +1,6 @@
 # Action Name
 name: "CodeQL"
 
-# Environment Variables
-env:
-  PROJECT_NAME: "RICADO.RabbitMQ"
-
 # When the Action will Run
 on:
   push:
@@ -47,14 +43,10 @@ jobs:
         env:
           NUGET_AUTH_TOKEN: ${{ secrets.GH_ACTIONS_PAT }}
       
-      # Step 4 - Restore NuGet Packages
-      - name: Restore NuGet Packages
-        run: dotnet restore "${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}.csproj"
+      # Step 4 - Build the Library
+      - name: Run CodeQL Autobuild
+        uses: github/codeql-action/autobuild@v1
       
-      # Step 5 - Build the Library
-      - name: Build the Library
-        run: dotnet build "${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}.csproj" -c Release --no-restore
-      
-      # Step 6 - Perform CodeQL Analysis
+      # Step 5 - Perform CodeQL Analysis
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v1
