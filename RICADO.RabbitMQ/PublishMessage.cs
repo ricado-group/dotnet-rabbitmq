@@ -348,13 +348,19 @@ namespace RICADO.RabbitMQ
                 throw new ArgumentNullException(nameof(routingKey));
             }
 
+#if NETSTANDARD
+            TimeSpan publishTimeout = client.DefaultPublishTimeout ?? TimeSpan.FromMilliseconds(client.HeartbeatInterval.Milliseconds * 2);
+#else
+            TimeSpan publishTimeout = client.DefaultPublishTimeout ?? client.HeartbeatInterval.Multiply(2);
+#endif
+
             return new PublishMessage(client.DefaultPublishRetries)
             {
                 Exchange = exchange,
                 RoutingKey = routingKey,
                 Mode = mode,
                 Type = type,
-                PublishTimeout = client.DefaultPublishTimeout ?? client.HeartbeatInterval.Multiply(2),
+                PublishTimeout = publishTimeout,
                 PublishRetries = client.DefaultPublishRetries,
             };
         }
@@ -385,13 +391,19 @@ namespace RICADO.RabbitMQ
                 throw new ArgumentOutOfRangeException(nameof(receivedMessageId), "The Received Message ID cannot be an Empty GUID");
             }
 
+#if NETSTANDARD
+            TimeSpan publishTimeout = client.DefaultPublishTimeout ?? TimeSpan.FromMilliseconds(client.HeartbeatInterval.Milliseconds * 2);
+#else
+            TimeSpan publishTimeout = client.DefaultPublishTimeout ?? client.HeartbeatInterval.Multiply(2);
+#endif
+
             return new PublishMessage(client.DefaultPublishRetries)
             {
                 Exchange = "",
                 RoutingKey = replyTo,
                 Mode = mode,
                 Type = type,
-                PublishTimeout = client.DefaultPublishTimeout ?? client.HeartbeatInterval.Multiply(2),
+                PublishTimeout = publishTimeout,
                 PublishRetries = client.DefaultPublishRetries,
                 CorrelationID = receivedMessageId,
             };
@@ -409,10 +421,10 @@ namespace RICADO.RabbitMQ
             return this;
         }
 
-        #endregion
+#endregion
 
 
-        #region Internal Methods
+#region Internal Methods
 
         internal IBasicProperties BuildProperties(IModel channel)
         {
@@ -479,6 +491,6 @@ namespace RICADO.RabbitMQ
             _retriesCountdown.Signal();
         }
 
-        #endregion
+#endregion
     }
 }
