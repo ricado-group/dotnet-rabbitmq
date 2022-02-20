@@ -349,7 +349,7 @@ namespace RICADO.RabbitMQ
             }
 
 #if NETSTANDARD
-            TimeSpan publishTimeout = client.DefaultPublishTimeout ?? TimeSpan.FromMilliseconds(client.HeartbeatInterval.Milliseconds * 2);
+            TimeSpan publishTimeout = client.DefaultPublishTimeout ?? TimeSpan.FromMilliseconds(client.HeartbeatInterval.TotalMilliseconds * 2);
 #else
             TimeSpan publishTimeout = client.DefaultPublishTimeout ?? client.HeartbeatInterval.Multiply(2);
 #endif
@@ -392,7 +392,7 @@ namespace RICADO.RabbitMQ
             }
 
 #if NETSTANDARD
-            TimeSpan publishTimeout = client.DefaultPublishTimeout ?? TimeSpan.FromMilliseconds(client.HeartbeatInterval.Milliseconds * 2);
+            TimeSpan publishTimeout = client.DefaultPublishTimeout ?? TimeSpan.FromMilliseconds(client.HeartbeatInterval.TotalMilliseconds * 2);
 #else
             TimeSpan publishTimeout = client.DefaultPublishTimeout ?? client.HeartbeatInterval.Multiply(2);
 #endif
