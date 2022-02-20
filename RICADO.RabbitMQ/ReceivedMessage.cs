@@ -285,12 +285,22 @@ namespace RICADO.RabbitMQ
 
             IBasicProperties properties = eventArgs.BasicProperties;
 
-            ReceivedMessage message = properties?.ContentType?.ToLower() switch
+            ReceivedMessage message = null;
+
+            switch(properties?.ContentType?.ToLower())
             {
-                ContentTypes.JSON => new JSONReceivedMessage(),
-                ContentTypes.Binary => new BinaryReceivedMessage(),
-                _ => new ReceivedMessage(),
-            };
+                case ContentTypes.JSON:
+                    message = new JSONReceivedMessage();
+                    break;
+
+                case ContentTypes.Binary:
+                    message = new BinaryReceivedMessage();
+                    break;
+
+                default:
+                    message = new ReceivedMessage();
+                    break;
+            }
 
             message.DeliveryTag = eventArgs.DeliveryTag;
             message.Exchange = eventArgs.Exchange;

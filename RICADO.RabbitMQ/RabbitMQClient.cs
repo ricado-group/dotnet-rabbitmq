@@ -1152,6 +1152,37 @@ namespace RICADO.RabbitMQ
 
         #region Internal Methods
 
+#if NETSTANDARD
+        /// <summary>
+        /// Send an Ack Response for one or more Delivery Tags to the RabbitMQ Broker
+        /// </summary>
+        /// <param name="deliveryTag">The Delivery Tag to Ack</param>
+        /// <param name="multiple">Whether all Delivery Tags prior to and including this Tag should be Ack'd</param>
+        /// <returns>A Task that will Complete upon successfully Sending an Ack Response to the RabbitMQ Broker</returns>
+        internal Task SendAck(ulong deliveryTag, bool multiple = false)
+        {
+            if (IsShutdown == true)
+            {
+                throw new RabbitMQException("Cannot Ack a Message since the Connection is Shutdown");
+            }
+
+            if (IsConnected == false)
+            {
+                throw new RabbitMQException("Cannot Ack a Message while the Connection is Unavailable");
+            }
+
+            try
+            {
+                _channel.BasicAck(deliveryTag, multiple);
+            }
+            catch (AlreadyClosedException e)
+            {
+                throw new RabbitMQException("Failed to Ack a Message - The Connection is Closed", e);
+            }
+
+            return Task.CompletedTask;
+        }
+#else
         /// <summary>
         /// Send an Ack Response for one or more Delivery Tags to the RabbitMQ Broker
         /// </summary>
@@ -1181,6 +1212,7 @@ namespace RICADO.RabbitMQ
 
             return ValueTask.CompletedTask;
         }
+#endif
 
         /// <summary>
         /// Try to Send an Ack Response for one or more Delivery Tags to the RabbitMQ Broker
@@ -1207,6 +1239,38 @@ namespace RICADO.RabbitMQ
             }
         }
 
+#if NETSTANDARD
+        /// <summary>
+        /// Send a Nack Response for one or more Delivery Tags to the RabbitMQ Broker
+        /// </summary>
+        /// <param name="deliveryTag">The Delivery Tag to Nack</param>
+        /// <param name="requeue">Whether the Delivery Tag(s) should be Requeued for Delivery by the RabbitMQ Broker</param>
+        /// <param name="multiple">Whether all Delivery Tags prior to and including this Tag should be Nack'd</param>
+        /// <returns>A Task that will Complete upon successfully Sending a Nack Response to the RabbitMQ Broker</returns>
+        internal Task SendNack(ulong deliveryTag, bool requeue, bool multiple = false)
+        {
+            if (IsShutdown == true)
+            {
+                throw new RabbitMQException("Cannot Nack a Message since the Connection is Shutdown");
+            }
+
+            if (IsConnected == false)
+            {
+                throw new RabbitMQException("Cannot Nack a Message while the Connection is Unavailable");
+            }
+
+            try
+            {
+                _channel.BasicNack(deliveryTag, multiple, requeue);
+            }
+            catch (AlreadyClosedException e)
+            {
+                throw new RabbitMQException("Failed to Nack a Message - The Connection is Closed", e);
+            }
+
+            return Task.CompletedTask;
+        }
+#else
         /// <summary>
         /// Send a Nack Response for one or more Delivery Tags to the RabbitMQ Broker
         /// </summary>
@@ -1237,6 +1301,7 @@ namespace RICADO.RabbitMQ
 
             return ValueTask.CompletedTask;
         }
+#endif
 
         /// <summary>
         /// Try to Send a Nack Response for one or more Delivery Tags to the RabbitMQ Broker
