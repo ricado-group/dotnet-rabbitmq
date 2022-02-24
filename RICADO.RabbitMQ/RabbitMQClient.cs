@@ -449,7 +449,10 @@ namespace RICADO.RabbitMQ
 
             IsShutdown = true;
 
-            await _channelSemaphore.WaitAsync(cancellationToken);
+            if (!_channelSemaphore.Wait(0))
+            {
+                await _channelSemaphore.WaitAsync(cancellationToken);
+            }
 
             try
             {
@@ -520,7 +523,10 @@ namespace RICADO.RabbitMQ
                 throw new RabbitMQException("Cannot Declare an Exchange since the Connection is Shutdown");
             }
 
-            await _channelSemaphore.WaitAsync(cancellationToken);
+            if (!_channelSemaphore.Wait(0))
+            {
+                await _channelSemaphore.WaitAsync(cancellationToken);
+            }
 
             try
             {
@@ -555,7 +561,10 @@ namespace RICADO.RabbitMQ
                 throw new RabbitMQException("Cannot Passively Declare an Exchange since the Connection is Shutdown");
             }
 
-            await _channelSemaphore.WaitAsync(cancellationToken);
+            if (!_channelSemaphore.Wait(0))
+            {
+                await _channelSemaphore.WaitAsync(cancellationToken);
+            }
 
             try
             {
@@ -591,7 +600,10 @@ namespace RICADO.RabbitMQ
                 throw new RabbitMQException("Cannot Delete an Exchange since the Connection is Shutdown");
             }
 
-            await _channelSemaphore.WaitAsync(cancellationToken);
+            if (!_channelSemaphore.Wait(0))
+            {
+                await _channelSemaphore.WaitAsync(cancellationToken);
+            }
 
             try
             {
@@ -630,7 +642,10 @@ namespace RICADO.RabbitMQ
                 throw new RabbitMQException("Cannot Declare a Queue since the Connection is Shutdown");
             }
 
-            await _channelSemaphore.WaitAsync(cancellationToken);
+            if (!_channelSemaphore.Wait(0))
+            {
+                await _channelSemaphore.WaitAsync(cancellationToken);
+            }
 
             try
             {
@@ -677,7 +692,10 @@ namespace RICADO.RabbitMQ
                 throw new RabbitMQException("Cannot Passively Declare a Queue since the Connection is Shutdown");
             }
 
-            await _channelSemaphore.WaitAsync(cancellationToken);
+            if (!_channelSemaphore.Wait(0))
+            {
+                await _channelSemaphore.WaitAsync(cancellationToken);
+            }
 
             try
             {
@@ -719,7 +737,10 @@ namespace RICADO.RabbitMQ
                 throw new RabbitMQException("Cannot Delete a Queue since the Connection is Shutdown");
             }
 
-            await _channelSemaphore.WaitAsync(cancellationToken);
+            if (!_channelSemaphore.Wait(0))
+            {
+                await _channelSemaphore.WaitAsync(cancellationToken);
+            }
 
             try
             {
@@ -766,7 +787,10 @@ namespace RICADO.RabbitMQ
                 throw new RabbitMQException("Cannot Bind an Exchange to another Exchange since the Connection is Shutdown");
             }
 
-            await _channelSemaphore.WaitAsync(cancellationToken);
+            if (!_channelSemaphore.Wait(0))
+            {
+                await _channelSemaphore.WaitAsync(cancellationToken);
+            }
 
             try
             {
@@ -813,7 +837,10 @@ namespace RICADO.RabbitMQ
                 throw new RabbitMQException("Cannot Unbind an Exchange from another Exchange since the Connection is Shutdown");
             }
 
-            await _channelSemaphore.WaitAsync(cancellationToken);
+            if (!_channelSemaphore.Wait(0))
+            {
+                await _channelSemaphore.WaitAsync(cancellationToken);
+            }
 
             try
             {
@@ -860,7 +887,10 @@ namespace RICADO.RabbitMQ
                 throw new RabbitMQException("Cannot Bind a Queue to an Exchange since the Connection is Shutdown");
             }
 
-            await _channelSemaphore.WaitAsync(cancellationToken);
+            if (!_channelSemaphore.Wait(0))
+            {
+                await _channelSemaphore.WaitAsync(cancellationToken);
+            }
 
             try
             {
@@ -907,7 +937,10 @@ namespace RICADO.RabbitMQ
                 throw new RabbitMQException("Cannot Unbind a Queue from an Exchange since the Connection is Shutdown");
             }
 
-            await _channelSemaphore.WaitAsync(cancellationToken);
+            if (!_channelSemaphore.Wait(0))
+            {
+                await _channelSemaphore.WaitAsync(cancellationToken);
+            }
 
             try
             {
@@ -948,7 +981,10 @@ namespace RICADO.RabbitMQ
                 throw new RabbitMQException("Cannot Create a Queue Consumer since the Connection is Shutdown");
             }
 
-            await _channelSemaphore.WaitAsync(cancellationToken);
+            if (!_channelSemaphore.Wait(0))
+            {
+                await _channelSemaphore.WaitAsync(cancellationToken);
+            }
 
             try
             {
@@ -998,7 +1034,10 @@ namespace RICADO.RabbitMQ
                 throw new RabbitMQException("Cannot Destroy a Queue Consumer since the Connection is Shutdown");
             }
 
-            await _channelSemaphore.WaitAsync(cancellationToken);
+            if (!_channelSemaphore.Wait(0))
+            {
+                await _channelSemaphore.WaitAsync(cancellationToken);
+            }
 
             try
             {
@@ -1077,7 +1116,7 @@ namespace RICADO.RabbitMQ
                 throw new RabbitMQException("Cannot Publish a Message while the Connection is Unavailable");
             }
 
-            if (_publishSemaphore.Wait(0, cancellationToken) == false)
+            if (!_publishSemaphore.Wait(0, cancellationToken))
             {
                 await _publishSemaphore.WaitAsync(cancellationToken);
             }
@@ -1445,7 +1484,10 @@ namespace RICADO.RabbitMQ
 
                 if (_connection.IsOpen)
                 {
-                    await _channelSemaphore.WaitAsync(cancellationToken);
+                    if (!_channelSemaphore.Wait(0))
+                    {
+                        await _channelSemaphore.WaitAsync(cancellationToken);
+                    }
 
                     try
                     {
