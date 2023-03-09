@@ -61,7 +61,14 @@ namespace RICADO.RabbitMQ
                 _jsonBody = JValue.CreateNull();
             }
 
-            _jsonBody = JToken.Parse(jsonString);
+            try
+            {
+                _jsonBody = JToken.Parse(jsonString);
+            }
+            catch
+            {
+                _jsonBody = JValue.CreateNull();
+            }
         }
 
         #endregion
