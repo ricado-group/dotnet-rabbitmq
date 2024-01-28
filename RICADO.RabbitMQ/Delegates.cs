@@ -22,32 +22,61 @@ namespace RICADO.RabbitMQ
     /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
     /// <returns>A Task that eventually Completes</returns>
     public delegate Task PublishResultHandler(Guid messageId, PublishResultType result, int? failureCode, string failureReason, CancellationToken cancellationToken);
-    
+
     /// <summary>
-    /// A Delegate to Handle Exceptions raised as Events
+    /// A Delegate to Handle Connection Exceptions raised as Events
     /// </summary>
-    /// <param name="client">The <see cref="RabbitMQClient"/> Instance</param>
+    /// <param name="connection">The <see cref="IRabbitMQConnection"/> Instance</param>
     /// <param name="e">The Exception</param>
-    public delegate void ExceptionEventHandler(RabbitMQClient client, Exception e);
+    public delegate void ConnectionExceptionHandler(IRabbitMQConnection connection, Exception e);
 
     /// <summary>
     /// A Delegate to Handle Connection Recovery Success Events
     /// </summary>
-    /// <param name="client">The <see cref="RabbitMQClient"/> Instance</param>
-    public delegate void ConnectionRecoverySuccessHandler(RabbitMQClient client);
+    /// <param name="connection">The <see cref="IRabbitMQConnection"/> Instance</param>
+    public delegate void ConnectionRecoverySuccessHandler(IRabbitMQConnection connection);
 
     /// <summary>
     /// A Delegate to Handle Connection Recovery Error Events
     /// </summary>
-    /// <param name="client">The <see cref="RabbitMQClient"/> Instance</param>
+    /// <param name="connection">The <see cref="IRabbitMQConnection"/> Instance</param>
     /// <param name="e">The Exception that occurred during Recovery</param>
-    public delegate void ConnectionRecoveryErrorHandler(RabbitMQClient client, Exception e);
+    public delegate void ConnectionRecoveryErrorHandler(IRabbitMQConnection connection, Exception e);
 
     /// <summary>
     /// A Delegate to Handle Unexpected Connection Shutdown Events
     /// </summary>
-    /// <param name="client">The <see cref="RabbitMQClient"/> Instance</param>
+    /// <param name="connection">The <see cref="IRabbitMQConnection"/> Instance</param>
     /// <param name="errorCode">The Code Returned by the RabbitMQ Broker</param>
     /// <param name="reason">The Reason Returned by the RabbitMQ Broker</param>
-    public delegate void UnexpectedConnectionShutdownHandler(RabbitMQClient client, int errorCode, string reason);
+    public delegate void UnexpectedConnectionShutdownHandler(IRabbitMQConnection connection, int errorCode, string reason);
+
+    /// <summary>
+    /// A Delegate to Handle Channel Exceptions raised as Events
+    /// </summary>
+    /// <param name="channel">The <see cref="IRabbitMQChannel"/> Instance</param>
+    /// <param name="e">The Exception</param>
+    public delegate void ChannelExceptionHandler(IRabbitMQChannel channel, Exception e);
+
+    /// <summary>
+    /// A Delegate to Handle Unexpected Channel Shutdown Events
+    /// </summary>
+    /// <param name="channel">The <see cref="IRabbitMQChannel"/> Instance</param>
+    /// <param name="errorCode">The Code Returned by the RabbitMQ Broker</param>
+    /// <param name="reason">The Reason Returned by the RabbitMQ Broker</param>
+    public delegate void UnexpectedChannelShutdownHandler(IRabbitMQChannel channel, int errorCode, string reason);
+
+    /// <summary>
+    /// A Delegate to Handle Consumer Exceptions raised as Events
+    /// </summary>
+    /// <param name="channel">The <see cref="IRabbitMQConsumerChannel"/> Instance</param>
+    /// <param name="e">The Exception</param>
+    public delegate void ConsumerExceptionHandler(IRabbitMQConsumerChannel channel, Exception e);
+
+    /// <summary>
+    /// A Delegate to Handle Publish Exceptions raised as Events
+    /// </summary>
+    /// <param name="channel">The <see cref="IRabbitMQPublisherChannel"/> Instance</param>
+    /// <param name="e">The Exception</param>
+    public delegate void PublishExceptionHandler(IRabbitMQPublisherChannel channel, Exception e);
 }

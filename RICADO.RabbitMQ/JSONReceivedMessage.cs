@@ -4,7 +4,7 @@ using Newtonsoft.Json.Linq;
 
 namespace RICADO.RabbitMQ
 {
-    public class JSONReceivedMessage : ReceivedMessage
+    public class JSONReceivedMessage : ReceivedMessage, IReceivedMessage, IJSONReceivedMessage
     {
         #region Private Properties
 
@@ -15,9 +15,6 @@ namespace RICADO.RabbitMQ
 
         #region Public Properties
 
-        /// <summary>
-        /// The JSON Message Body
-        /// </summary>
         public new JToken Body
         {
             get
