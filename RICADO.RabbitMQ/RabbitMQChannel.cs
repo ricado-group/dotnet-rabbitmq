@@ -721,66 +721,34 @@ namespace RICADO.RabbitMQ
 
         #region Private Methods
 
-        private async Task initializeChannel(CancellationToken cancellationToken)
+        private Task initializeChannel(CancellationToken cancellationToken)
         {
             if (_channel != null)
             {
                 throw new RabbitMQException("The Channel was already Initialized");
             }
 
-            cancellationToken.ThrowIfCancellationRequested();
-
-            while (cancellationToken.IsCancellationRequested == false)
+            if (_connection == null)
             {
-                if (_connection == null)
-                {
-                    throw new RabbitMQException("The Connection was Null during Channel Initialization");
-                }
-
-                TimeSpan connectionRetryInterval = _connection.ConnectionRecoveryInterval;
-
-                if (_connection.IsConnected)
-                {
-                    if (!_channelSemaphore.Wait(0))
-                    {
-                        await _channelSemaphore.WaitAsync(cancellationToken);
-                    }
-
-                    try
-                    {
-                        _channel = _connection.CreateUnderlyingChannel();
-
-                        if (_channel != null && _channel.IsOpen == true)
-                        {
-                            _channel.CallbackException += channelCallbackException;
-                            _channel.ModelShutdown += channelModelShutdown;
-
-                            await InitializeChannel(cancellationToken);
-
-                            return;
-                        }
-
-                        destroyChannel();
-                    }
-                    catch
-                    {
-                        destroyChannel();
-                    }
-                    finally
-                    {
-                        _channelSemaphore.Release();
-                    }
-                }
-
-                await Task.Delay(connectionRetryInterval, cancellationToken);
+                throw new RabbitMQException("The Connection was Null during Channel Initialization");
             }
 
-            if (cancellationToken.IsCancellationRequested)
+            if(_connection.IsConnected == false)
             {
-                destroyChannel();
+                throw new RabbitMQException("The Connection was not Connected during Channel Initialization");
             }
 
-            cancellationToken.ThrowIfCancellationRequested();
+            _channel = _connection.CreateUnderlyingChannel();
+
+            if (_channel == null || _channel.IsOpen != true)
+            {
+                throw new RabbitMQException("The Channel failed to Open after being Created");
+            }
+
+            _channel.CallbackException += channelCallbackException;
+            _channel.ModelShutdown += channelModelShutdown;
+
+            return InitializeChannel(cancellationToken);
         }
 
         private void destroyChannel()
@@ -933,20 +901,11 @@ namespace RICADO.RabbitMQ
             try
             {
                 destroyChannel();
-            }
-            finally
-            {
-                _channelSemaphore.Release();
-            }
 
-            cancellationToken.ThrowIfCancellationRequested();
+                cancellationToken.ThrowIfCancellationRequested();
 
-            await initializeChannel(cancellationToken);
+                await initializeChannel(cancellationToken);
 
-            await _channelSemaphore.WaitAsync(cancellationToken);
-
-            try
-            {
                 foreach (ExchangeDeclaration declaration in _exchangeDeclarations.Values)
                 {
                     cancellationToken.ThrowIfCancellationRequested();

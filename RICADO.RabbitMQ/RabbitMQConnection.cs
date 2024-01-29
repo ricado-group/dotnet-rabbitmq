@@ -311,20 +311,71 @@ namespace RICADO.RabbitMQ
 
         #region Public Methods
 
-        public async Task Initialize(CancellationToken cancellationToken)
+        public Task Initialize(CancellationToken cancellationToken)
         {
             IsShutdown = false;
 
-            await initializeConnection(cancellationToken);
+            if (_connection != null)
+            {
+                throw new RabbitMQException("The Connection was already Initialized");
+            }
+
+            if (_connectionFactory == null)
+            {
+                throw new RabbitMQException("The Connection Factory was Null during Connection Initialization");
+            }
+
+            if (_servers == null)
+            {
+                throw new RabbitMQException("The Servers Collection was Null during Connection Initialization");
+            }
+
+            _connection = (IAutorecoveringConnection)_connectionFactory.CreateConnection(_servers.ToList());
+
+            if (_connection == null || _connection.IsOpen != true)
+            {
+                throw new RabbitMQException("The Connection failed to Open after being Created");
+            }
+
+            _connection.RecoverySucceeded += connectionRecoverySucceeded;
+            _connection.ConnectionRecoveryError += connectionRecoveryError;
+            _connection.CallbackException += connectionCallbackException;
+            _connection.ConnectionShutdown += connectionConnectionShutdown;
+
+            return Task.CompletedTask;
         }
 
         public Task Destroy(CancellationToken cancellationToken)
         {
             IsShutdown = true;
 
-            destroyConnection();
+            if (_connection == null)
+            {
+                return Task.CompletedTask;
+            }
 
-            _connectionFactory = null;
+            _connection.RecoverySucceeded -= connectionRecoverySucceeded;
+            _connection.ConnectionRecoveryError -= connectionRecoveryError;
+            _connection.CallbackException -= connectionCallbackException;
+            _connection.ConnectionShutdown -= connectionConnectionShutdown;
+
+            try
+            {
+                _connection.Close(_connectionFactory?.ContinuationTimeout ?? TimeSpan.FromSeconds(4));
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                _connection.Dispose();
+            }
+            catch
+            {
+            }
+
+            _connection = null;
 
             return Task.CompletedTask;
         }
@@ -358,92 +409,6 @@ namespace RICADO.RabbitMQ
 
 
         #region Private Methods
-
-        private async Task initializeConnection(CancellationToken cancellationToken)
-        {
-            if (_connection != null)
-            {
-                throw new RabbitMQException("The Connection was already Initialized");
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-
-            while (cancellationToken.IsCancellationRequested == false)
-            {
-                if (_connectionFactory == null)
-                {
-                    throw new RabbitMQException("The Connection Factory was Null during Connection Initialization");
-                }
-
-                TimeSpan connectionRetryInterval = _connectionFactory.NetworkRecoveryInterval;
-
-                if (_servers == null)
-                {
-                    throw new RabbitMQException("The Servers Collection was Null during Connection Initialization");
-                }
-
-                try
-                {
-                    _connection = (IAutorecoveringConnection)_connectionFactory.CreateConnection(_servers.ToList());
-
-                    if (_connection != null && _connection.IsOpen == true)
-                    {
-                        _connection.RecoverySucceeded += connectionRecoverySucceeded;
-                        _connection.ConnectionRecoveryError += connectionRecoveryError;
-                        _connection.CallbackException += connectionCallbackException;
-                        _connection.ConnectionShutdown += connectionConnectionShutdown;
-
-                        return;
-                    }
-
-                    destroyConnection();
-                }
-                catch
-                {
-                    destroyConnection();
-                }
-
-                await Task.Delay(connectionRetryInterval, cancellationToken);
-            }
-
-            if (cancellationToken.IsCancellationRequested)
-            {
-                destroyConnection();
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-        }
-
-        private void destroyConnection()
-        {
-            if (_connection == null)
-            {
-                return;
-            }
-
-            _connection.RecoverySucceeded -= connectionRecoverySucceeded;
-            _connection.ConnectionRecoveryError -= connectionRecoveryError;
-            _connection.CallbackException -= connectionCallbackException;
-            _connection.ConnectionShutdown -= connectionConnectionShutdown;
-
-            try
-            {
-                _connection.Close(_connectionFactory?.ContinuationTimeout ?? TimeSpan.FromSeconds(4));
-            }
-            catch
-            {
-            }
-
-            try
-            {
-                _connection.Dispose();
-            }
-            catch
-            {
-            }
-
-            _connection = null;
-        }
 
         private void connectionRecoverySucceeded(object sender, EventArgs e)
         {
