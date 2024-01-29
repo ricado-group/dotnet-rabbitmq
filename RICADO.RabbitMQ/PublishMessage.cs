@@ -4,9 +4,9 @@ using RabbitMQ.Client;
 
 namespace RICADO.RabbitMQ
 {
-    public class PublishMessage
+    public class PublishMessage : IPublishMessage
     {
-        #region Private Properties
+        #region Private Fields
 
         private readonly Guid _messageId;
         private string _exchange;
@@ -37,200 +37,7 @@ namespace RICADO.RabbitMQ
         #endregion
 
 
-        #region Public Properties
-
-        /// <summary>
-        /// The Unique Message ID
-        /// </summary>
-        public Guid MessageID
-        {
-            get
-            {
-                return _messageId;
-            }
-        }
-
-        /// <summary>
-        /// The Exchange this Message will be Sent to
-        /// </summary>
-        public string Exchange
-        {
-            get
-            {
-                return _exchange;
-            }
-            protected set
-            {
-                _exchange = value;
-            }
-        }
-
-        /// <summary>
-        /// The Routing Key this Message will be Sent with
-        /// </summary>
-        public string RoutingKey
-        {
-            get
-            {
-                return _routingKey;
-            }
-            protected set
-            {
-                _routingKey = value;
-            }
-        }
-
-        /// <summary>
-        /// The Publishing Mode to handle interaction with the RabbitMQ Broker
-        /// </summary>
-        public PublishMode Mode
-        {
-            get
-            {
-                return _mode;
-            }
-            protected set
-            {
-                _mode = value;
-            }
-        }
-
-        /// <summary>
-        /// The Type of Message
-        /// </summary>
-        public string Type
-        {
-            get
-            {
-                return _type;
-            }
-            protected set
-            {
-                _type = value;
-            }
-        }
-
-        /// <summary>
-        /// The Message Body Byte Array
-        /// </summary>
-        public ReadOnlyMemory<byte> Body
-        {
-            get
-            {
-                return _body;
-            }
-            set
-            {
-                _body = value;
-            }
-        }
-
-        /// <summary>
-        /// Whether the Message should be Persisted by the RabbitMQ Broker
-        /// </summary>
-        public bool Persistent
-        {
-            get
-            {
-                return _persistent;
-            }
-            set
-            {
-                _persistent = value;
-            }
-        }
-
-        /// <summary>
-        /// Whether the Message should be Returned if the RabbitMQ Broker cannot Route it to a Queue
-        /// </summary>
-        public bool Mandatory
-        {
-            get
-            {
-                return _mandatory;
-            }
-            set
-            {
-                _mandatory = value;
-            }
-        }
-
-        /// <summary>
-        /// The Content Type for the Body
-        /// </summary>
-        public string ContentType
-        {
-            get
-            {
-                return _contentType;
-            }
-            set
-            {
-                _contentType = value;
-            }
-        }
-
-        /// <summary>
-        /// The Content Encoding for the Body
-        /// </summary>
-        public string ContentEncoding
-        {
-            get
-            {
-                return _contentEncoding;
-            }
-            set
-            {
-                _contentEncoding = value;
-            }
-        }
-
-        /// <summary>
-        /// An Optional Time-to-Live (TTL) for the Message
-        /// </summary>
-        public TimeSpan? Expiration
-        {
-            get
-            {
-                return _expiration;
-            }
-            set
-            {
-                _expiration = value;
-            }
-        }
-
-        /// <summary>
-        /// The Time to Wait for a Publish Response from the RabbitMQ Broker
-        /// </summary>
-        public TimeSpan PublishTimeout
-        {
-            get
-            {
-                return _publishTimeout;
-            }
-            set
-            {
-                _publishTimeout = value;
-            }
-        }
-
-        /// <summary>
-        /// The Number of Times to Retry Publishing
-        /// </summary>
-        public int PublishRetries
-        {
-            get
-            {
-                return _publishRetries;
-            }
-            set
-            {
-                _publishRetries = value;
-
-                _retriesCountdown.Reset(value);
-            }
-        }
+        #region Internal Properties
 
         /// <summary>
         /// An Optional ID that references the Message ID being Replied To
@@ -283,7 +90,7 @@ namespace RICADO.RabbitMQ
         {
             get
             {
-                lock(_publishTimestampLock)
+                lock (_publishTimestampLock)
                 {
                     return _publishTimestamp;
                 }
@@ -297,7 +104,166 @@ namespace RICADO.RabbitMQ
         {
             get
             {
-                return _retriesCountdown.IsSet;
+                return _retriesCountdown.IsSet == false;
+            }
+        }
+
+        #endregion
+
+
+        #region Public Properties
+
+        public Guid MessageID
+        {
+            get
+            {
+                return _messageId;
+            }
+        }
+
+        public string Exchange
+        {
+            get
+            {
+                return _exchange;
+            }
+            protected set
+            {
+                _exchange = value;
+            }
+        }
+
+        public string RoutingKey
+        {
+            get
+            {
+                return _routingKey;
+            }
+            protected set
+            {
+                _routingKey = value;
+            }
+        }
+
+        public PublishMode Mode
+        {
+            get
+            {
+                return _mode;
+            }
+            protected set
+            {
+                _mode = value;
+            }
+        }
+
+        public string Type
+        {
+            get
+            {
+                return _type;
+            }
+            protected set
+            {
+                _type = value;
+            }
+        }
+
+        public ReadOnlyMemory<byte> Body
+        {
+            get
+            {
+                return _body;
+            }
+            set
+            {
+                _body = value;
+            }
+        }
+
+        public bool Persistent
+        {
+            get
+            {
+                return _persistent;
+            }
+            set
+            {
+                _persistent = value;
+            }
+        }
+
+        public bool Mandatory
+        {
+            get
+            {
+                return _mandatory;
+            }
+            set
+            {
+                _mandatory = value;
+            }
+        }
+
+        public string ContentType
+        {
+            get
+            {
+                return _contentType;
+            }
+            set
+            {
+                _contentType = value;
+            }
+        }
+
+        public string ContentEncoding
+        {
+            get
+            {
+                return _contentEncoding;
+            }
+            set
+            {
+                _contentEncoding = value;
+            }
+        }
+
+        public TimeSpan? Expiration
+        {
+            get
+            {
+                return _expiration;
+            }
+            set
+            {
+                _expiration = value;
+            }
+        }
+
+        public TimeSpan PublishTimeout
+        {
+            get
+            {
+                return _publishTimeout;
+            }
+            set
+            {
+                _publishTimeout = value;
+            }
+        }
+
+        public int PublishRetries
+        {
+            get
+            {
+                return _publishRetries;
+            }
+            set
+            {
+                _publishRetries = value;
+
+                _retriesCountdown.Reset(value);
             }
         }
 
@@ -325,17 +291,17 @@ namespace RICADO.RabbitMQ
         /// <summary>
         /// Create a new Message for Publishing to an Exchange
         /// </summary>
-        /// <param name="client">A <see cref="RabbitMQClient"/> Instance</param>
+        /// <param name="channel">A <see cref="IRabbitMQPublisherChannel"/> Instance</param>
         /// <param name="exchange">The Exchange to Publish this Message to</param>
         /// <param name="routingKey">The Routing Key for this Message</param>
         /// <param name="type">The Type of Message</param>
         /// <param name="mode">The Publishing Mode for this Message</param>
         /// <returns>A New <see cref="PublishMessage"/> Instance ready to be Customized before Publishing</returns>
-        public static PublishMessage CreateNew(RabbitMQClient client, string exchange, string routingKey, string type = "", PublishMode mode = PublishMode.BrokerConfirm)
+        public static PublishMessage CreateNew(IRabbitMQPublisherChannel channel, string exchange, string routingKey, string type = "", PublishMode mode = PublishMode.BrokerConfirm)
         {
-            if(client == null)
+            if(channel == null)
             {
-                throw new ArgumentNullException(nameof(client));
+                throw new ArgumentNullException(nameof(channel));
             }
             
             if(exchange == null)
@@ -348,37 +314,31 @@ namespace RICADO.RabbitMQ
                 throw new ArgumentNullException(nameof(routingKey));
             }
 
-#if NETSTANDARD
-            TimeSpan publishTimeout = client.DefaultPublishTimeout ?? TimeSpan.FromMilliseconds(client.HeartbeatInterval.TotalMilliseconds * 2);
-#else
-            TimeSpan publishTimeout = client.DefaultPublishTimeout ?? client.HeartbeatInterval.Multiply(2);
-#endif
-
-            return new PublishMessage(client.DefaultPublishRetries)
+            return new PublishMessage(channel.DefaultPublishRetries)
             {
                 Exchange = exchange,
                 RoutingKey = routingKey,
                 Mode = mode,
                 Type = type,
-                PublishTimeout = publishTimeout,
-                PublishRetries = client.DefaultPublishRetries,
+                PublishTimeout = channel.DefaultPublishTimeout,
+                PublishRetries = channel.DefaultPublishRetries,
             };
         }
 
         /// <summary>
         /// Create a new Message for Publishing a Reply directly to a Queue
         /// </summary>
-        /// <param name="client">A <see cref="RabbitMQClient"/> Instance</param>
+        /// <param name="channel">A <see cref="IRabbitMQPublisherChannel"/> Instance</param>
         /// <param name="replyTo">The Name of the Queue to Directly Publish to</param>
         /// <param name="receivedMessageId">The ID of the Message that is being Replied to</param>
         /// <param name="type">The Type of Message</param>
         /// <param name="mode">The Publishing Mode for this Message</param>
         /// <returns>A New <see cref="PublishMessage"/> Instance ready to be Customized before Publishing</returns>
-        public static PublishMessage CreateNew(RabbitMQClient client, string replyTo, Guid receivedMessageId, string type = "", PublishMode mode = PublishMode.BrokerConfirm)
+        public static PublishMessage CreateNew(IRabbitMQPublisherChannel channel, string replyTo, Guid receivedMessageId, string type = "", PublishMode mode = PublishMode.BrokerConfirm)
         {
-            if (client == null)
+            if (channel == null)
             {
-                throw new ArgumentNullException(nameof(client));
+                throw new ArgumentNullException(nameof(channel));
             }
 
             if (replyTo == null)
@@ -391,40 +351,29 @@ namespace RICADO.RabbitMQ
                 throw new ArgumentOutOfRangeException(nameof(receivedMessageId), "The Received Message ID cannot be an Empty GUID");
             }
 
-#if NETSTANDARD
-            TimeSpan publishTimeout = client.DefaultPublishTimeout ?? TimeSpan.FromMilliseconds(client.HeartbeatInterval.TotalMilliseconds * 2);
-#else
-            TimeSpan publishTimeout = client.DefaultPublishTimeout ?? client.HeartbeatInterval.Multiply(2);
-#endif
-
-            return new PublishMessage(client.DefaultPublishRetries)
+            return new PublishMessage(channel.DefaultPublishRetries)
             {
                 Exchange = "",
                 RoutingKey = replyTo,
                 Mode = mode,
                 Type = type,
-                PublishTimeout = publishTimeout,
-                PublishRetries = client.DefaultPublishRetries,
+                PublishTimeout = channel.DefaultPublishTimeout,
+                PublishRetries = channel.DefaultPublishRetries,
                 CorrelationID = receivedMessageId,
             };
         }
 
-        /// <summary>
-        /// Set the Queue Name that should be used for any Replies to this Message
-        /// </summary>
-        /// <param name="queueName">A Valid Queue Name</param>
-        /// <returns>This Instance of <see cref="PublishMessage"/></returns>
         public PublishMessage SetReplyToQueueName(string queueName)
         {
-            this.ReplyTo = queueName;
+            ReplyTo = queueName;
 
             return this;
         }
 
-#endregion
+        #endregion
 
 
-#region Internal Methods
+        #region Internal Methods
 
         internal IBasicProperties BuildProperties(IModel channel)
         {
@@ -491,6 +440,6 @@ namespace RICADO.RabbitMQ
             _retriesCountdown.Signal();
         }
 
-#endregion
+        #endregion
     }
 }

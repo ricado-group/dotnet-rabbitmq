@@ -2,7 +2,7 @@
 
 namespace RICADO.RabbitMQ
 {
-    public class BinaryReceivedMessage : ReceivedMessage
+    public class BinaryReceivedMessage : ReceivedMessage, IReceivedMessage, IBinaryReceivedMessage
     {
         #region Private Properties
 
@@ -13,9 +13,6 @@ namespace RICADO.RabbitMQ
 
         #region Public Properties
 
-        /// <summary>
-        /// The JSON Message Body
-        /// </summary>
         public new ReadOnlyMemory<byte> Body
         {
             get

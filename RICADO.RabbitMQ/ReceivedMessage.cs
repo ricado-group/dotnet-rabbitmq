@@ -4,7 +4,7 @@ using RabbitMQ.Client.Events;
 
 namespace RICADO.RabbitMQ
 {
-    public class ReceivedMessage
+    public class ReceivedMessage : IReceivedMessage
     {
         #region Private Properties
 
@@ -27,9 +27,6 @@ namespace RICADO.RabbitMQ
 
         #region Public Properties
 
-        /// <summary>
-        /// The Unique Message ID
-        /// </summary>
         public Guid? MessageID
         {
             get
@@ -42,14 +39,8 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        /// <summary>
-        /// Whether this Message has a Valid ID
-        /// </summary>
         public bool HasMessageID => _messageId.HasValue && _messageId.Value != Guid.Empty;
 
-        /// <summary>
-        /// A Delivery Tag provided by the RabbitMQ Broker
-        /// </summary>
         public ulong DeliveryTag
         {
             get
@@ -62,9 +53,6 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        /// <summary>
-        /// The Exchange this Message was originally Sent to
-        /// </summary>
         public string Exchange
         {
             get
@@ -77,9 +65,6 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        /// <summary>
-        /// The Routing Key this Message was originally Sent with
-        /// </summary>
         public string RoutingKey
         {
             get
@@ -92,9 +77,6 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        /// <summary>
-        /// Whether this Message has been Redelivered by the RabbitMQ Broker
-        /// </summary>
         public bool Redelivered
         {
             get
@@ -107,9 +89,6 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        /// <summary>
-        /// The Message Body Byte Array
-        /// </summary>
         public ReadOnlyMemory<byte> Body
         {
             get
@@ -122,14 +101,8 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        /// <summary>
-        /// Whether this Message has a Body
-        /// </summary>
         public bool HasBody => _body.Length > 0;
 
-        /// <summary>
-        /// The Type of Message
-        /// </summary>
         public string Type
         {
             get
@@ -142,14 +115,8 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        /// <summary>
-        /// Whether this Message has a Type
-        /// </summary>
         public bool HasType => (_type?.Length ?? 0) > 0;
 
-        /// <summary>
-        /// The Content Type for the Body
-        /// </summary>
         public string ContentType
         {
             get
@@ -162,14 +129,8 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        /// <summary>
-        /// Whether this Message has a Content Type
-        /// </summary>
         public bool HasContentType => (_contentType?.Length ?? 0) > 0;
 
-        /// <summary>
-        /// The Content Encoding for the Body
-        /// </summary>
         public string ContentEncoding
         {
             get
@@ -182,14 +143,8 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        /// <summary>
-        /// Whether this Message has a Content Encoding
-        /// </summary>
         public bool HasContentEncoding => (_contentEncoding?.Length ?? 0) > 0;
 
-        /// <summary>
-        /// The Name of the Application that Sent this Message
-        /// </summary>
         public string ApplicationName
         {
             get
@@ -202,14 +157,8 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        /// <summary>
-        /// Whether this Message has an Application Name
-        /// </summary>
         public bool HasApplicationName => (_applicationName?.Length ?? 0) > 0;
 
-        /// <summary>
-        /// Whether the Message is Persisted by the RabbitMQ Broker
-        /// </summary>
         public bool Persistent
         {
             get
@@ -222,9 +171,6 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        /// <summary>
-        /// An Optional ID that references the Message ID being Replied To
-        /// </summary>
         public Guid? CorrelationID
         {
             get
@@ -237,14 +183,8 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        /// <summary>
-        /// Whether this Message has a Correlation ID
-        /// </summary>
         public bool HasCorrelationID => _correlationId.HasValue && _correlationId.Value != Guid.Empty;
 
-        /// <summary>
-        /// An Optional Queue Name to be used when requesting a Reply (RPC Style) for this Message
-        /// </summary>
         public string ReplyToQueueName
         {
             get
@@ -257,9 +197,6 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        /// <summary>
-        /// Whether this Message has a Reply To Queue Name
-        /// </summary>
         public bool HasReplyToQueueName => (_replyToQueueName?.Length ?? 0) > 0;
 
         #endregion
@@ -285,7 +222,7 @@ namespace RICADO.RabbitMQ
 
             IBasicProperties properties = eventArgs.BasicProperties;
 
-            ReceivedMessage message = null;
+            ReceivedMessage message;
 
             switch(properties?.ContentType?.ToLower())
             {
