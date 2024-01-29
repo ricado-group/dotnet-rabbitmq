@@ -212,12 +212,7 @@ namespace RICADO.RabbitMQ
 
             try
             {
-                if (_publishMessages.TryAdd(message.MessageID, message) == false)
-                {
-                    throw new RabbitMQException("Failed to Publish a Message - The Message to Publishe could not be added to the Queue");
-                }
-
-                message.Publish(Channel);
+                message.Publish(Channel, _publishMessages);
             }
             catch (AlreadyClosedException e)
             {

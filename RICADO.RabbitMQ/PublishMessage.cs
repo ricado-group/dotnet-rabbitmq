@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Threading;
 using RabbitMQ.Client;
 
@@ -29,7 +30,7 @@ namespace RICADO.RabbitMQ
         private ulong _deliveryTag = 0;
         private readonly object _deliveryTagLock = new object();
 
-        private DateTime _publishTimestamp = DateTime.MinValue;
+        private DateTime _publishTimestamp = DateTime.UtcNow;
         private readonly object _publishTimestampLock = new object();
 
         private readonly CountdownEvent _retriesCountdown;
@@ -413,12 +414,19 @@ namespace RICADO.RabbitMQ
             return properties;
         }
 
-        internal void Publish(IModel channel)
+        internal void Publish(IModel channel, ConcurrentDictionary<Guid, PublishMessage> publishMessages)
         {
             lock(_deliveryTagLock)
             {
                 _deliveryTag = channel.NextPublishSeqNo;
             }
+
+            lock(_publishTimestampLock)
+            {
+                _publishTimestamp = DateTime.UtcNow;
+            }
+
+            publishMessages.TryAdd(_messageId, this);
 
             channel.BasicPublish(Exchange, RoutingKey, Mandatory, BuildProperties(channel), Body);
 
