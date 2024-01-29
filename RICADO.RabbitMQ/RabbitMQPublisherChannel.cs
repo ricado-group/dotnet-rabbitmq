@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
@@ -210,32 +210,24 @@ namespace RICADO.RabbitMQ
                 await ChannelSemaphore.WaitAsync(cancellationToken);
             }
 
-            bool removeMessageOnException = false;
-
             try
             {
-                if (_publishMessages.TryAdd(message.MessageID, message))
+                if (_publishMessages.TryAdd(message.MessageID, message) == false)
                 {
-                    removeMessageOnException = true;
+                    throw new RabbitMQException("Failed to Publish a Message - The Message to Publishe could not be added to the Queue");
                 }
 
                 message.Publish(Channel);
             }
             catch (AlreadyClosedException e)
             {
-                if (removeMessageOnException)
-                {
-                    _publishMessages.TryRemove(message.MessageID, out _);
-                }
+                _publishMessages.TryRemove(message.MessageID, out _);
 
                 throw new RabbitMQException("Failed to Publish a Message - The Connection or Channel is Closed", e);
             }
             catch (Exception)
             {
-                if (removeMessageOnException)
-                {
-                    _publishMessages.TryRemove(message.MessageID, out _);
-                }
+                _publishMessages.TryRemove(message.MessageID, out _);
 
                 throw;
             }
@@ -243,11 +235,6 @@ namespace RICADO.RabbitMQ
             {
                 ChannelSemaphore.Release();
             }
-
-            _publishMessages.AddOrUpdate(message.MessageID, message, (oldKey, oldMessage) =>
-            {
-                return message;
-            });
         }
 
         public async ValueTask<bool> TryPublish(PublishMessage message, CancellationToken cancellationToken)
