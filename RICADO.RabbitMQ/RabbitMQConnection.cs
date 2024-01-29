@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -448,7 +447,7 @@ namespace RICADO.RabbitMQ
 
         private void connectionRecoverySucceeded(object sender, EventArgs e)
         {
-            ConnectionRecoverySuccess?.Invoke(this);
+            ConnectionRecovered?.Invoke(this);
         }
 
         private void connectionRecoveryError(object sender, ConnectionRecoveryErrorEventArgs e)
@@ -478,27 +477,12 @@ namespace RICADO.RabbitMQ
                 return;
             }
 
-            if (e.ReplyCode == 0 || e.ReplyCode == 320)
+            if (e.ReplyCode == 0)
             {
                 return;
             }
 
-            if (_connection.IsOpen == true) // Ignore Shutdown Errors when the Connection is still usable
-            {
-                return;
-            }
-
-            lock (_connectionShutdownLock)
-            {
-                if (_connectionShutdown == true)
-                {
-                    return;
-                }
-
-                _connectionShutdown = true;
-            }
-
-            UnexpectedConnectionShutdown?.Invoke(this, e.ReplyCode, e.ReplyText);
+            ConnectionLost?.Invoke(this, e.ReplyCode, e.ReplyText);
         }
 
         #endregion
@@ -508,11 +492,11 @@ namespace RICADO.RabbitMQ
 
         public event ConnectionExceptionHandler ConnectionException;
 
-        public event ConnectionRecoverySuccessHandler ConnectionRecoverySuccess;
+        public event ConnectionRecoveredHandler ConnectionRecovered;
+
+        public event ConnectionLostHandler ConnectionLost;
 
         public event ConnectionRecoveryErrorHandler ConnectionRecoveryError;
-
-        public event UnexpectedConnectionShutdownHandler UnexpectedConnectionShutdown;
 
         #endregion
     }

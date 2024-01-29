@@ -126,19 +126,19 @@ namespace RICADO.RabbitMQ
         event ConnectionExceptionHandler ConnectionException;
 
         /// <summary>
-        /// An Event that is Raised when the RabbitMQ Connection Recovers Successfully
+        /// An Event that is Raised when the RabbitMQ Connection has Recovered
         /// </summary>
-        event ConnectionRecoverySuccessHandler ConnectionRecoverySuccess;
+        event ConnectionRecoveredHandler ConnectionRecovered;
+
+        /// <summary>
+        /// An Event that is Raised when the RabbitMQ Connection has been Lost
+        /// </summary>
+        event ConnectionLostHandler ConnectionLost;
 
         /// <summary>
         /// An Event that is Raised when the RabbitMQ Connection Fails to Recover with an Exception
         /// </summary>
         event ConnectionRecoveryErrorHandler ConnectionRecoveryError;
-
-        /// <summary>
-        /// An Event that is Raised when the RabbitMQ Connection is unexpectedly Shutdown and is no longer useable
-        /// </summary>
-        event UnexpectedConnectionShutdownHandler UnexpectedConnectionShutdown;
 
         #endregion
     }

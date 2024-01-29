@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -31,10 +31,18 @@ namespace RICADO.RabbitMQ
     public delegate void ConnectionExceptionHandler(IRabbitMQConnection connection, Exception e);
 
     /// <summary>
-    /// A Delegate to Handle Connection Recovery Success Events
+    /// A Delegate to Handle Connection Recovered Events
     /// </summary>
     /// <param name="connection">The <see cref="IRabbitMQConnection"/> Instance</param>
-    public delegate void ConnectionRecoverySuccessHandler(IRabbitMQConnection connection);
+    public delegate void ConnectionRecoveredHandler(IRabbitMQConnection connection);
+
+    /// <summary>
+    /// A Delegate to Handle Connection Lost Events
+    /// </summary>
+    /// <param name="connection">The <see cref="IRabbitMQConnection"/> Instance</param>
+    /// <param name="errorCode">The Code Returned by the RabbitMQ Broker</param>
+    /// <param name="reason">The Reason Returned by the RabbitMQ Broker</param>
+    public delegate void ConnectionLostHandler(IRabbitMQConnection connection, int errorCode, string reason);
 
     /// <summary>
     /// A Delegate to Handle Connection Recovery Error Events
@@ -42,14 +50,6 @@ namespace RICADO.RabbitMQ
     /// <param name="connection">The <see cref="IRabbitMQConnection"/> Instance</param>
     /// <param name="e">The Exception that occurred during Recovery</param>
     public delegate void ConnectionRecoveryErrorHandler(IRabbitMQConnection connection, Exception e);
-
-    /// <summary>
-    /// A Delegate to Handle Unexpected Connection Shutdown Events
-    /// </summary>
-    /// <param name="connection">The <see cref="IRabbitMQConnection"/> Instance</param>
-    /// <param name="errorCode">The Code Returned by the RabbitMQ Broker</param>
-    /// <param name="reason">The Reason Returned by the RabbitMQ Broker</param>
-    public delegate void UnexpectedConnectionShutdownHandler(IRabbitMQConnection connection, int errorCode, string reason);
 
     /// <summary>
     /// A Delegate to Handle Channel Exceptions raised as Events
