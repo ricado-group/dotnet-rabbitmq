@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -162,14 +163,14 @@ namespace RICADO.RabbitMQ
                     throw new RabbitMQException("Cannot Destroy a Queue Consumer since the Consumer Handler is Null");
                 }
 
+                _consumerAsyncMethods.TryRemove(queueName, out _);
+
                 Channel.BasicCancel(queueName);
             }
             finally
             {
                 ChannelSemaphore.Release();
             }
-
-            _consumerAsyncMethods.TryRemove(queueName, out _);
         }
 
         #endregion
@@ -442,6 +443,7 @@ namespace RICADO.RabbitMQ
             _consumer = new AsyncEventingBasicConsumer(Channel);
 
             _consumer.Received += consumerReceived;
+            _consumer.ConsumerCancelled += consumerCancelled;
 
             return Task.CompletedTask;
         }
@@ -453,8 +455,37 @@ namespace RICADO.RabbitMQ
             if (_consumer != null)
             {
                 _consumer.Received -= consumerReceived;
+                _consumer.ConsumerCancelled -= consumerCancelled;
                 _consumer = null;
             }
+        }
+
+        protected override Task<bool> TryAutoRecovery(CancellationToken cancellationToken)
+        {
+            _consumerRedeliveredMessages.Clear();
+
+            foreach (string queueName in _consumerAsyncMethods.Keys)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                try
+                {
+                    if (Channel.BasicConsume(queueName, false, queueName, _consumer) != queueName)
+                    {
+                        throw new RabbitMQException("The Broker Consumer Tag did not match the Client Consumer Tag");
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception e)
+                {
+                    throw new RabbitMQException("Failed to Create a Consumer on Queue '" + queueName + "' during Auto Recovery - " + e.Message);
+                }
+            }
+
+            return Task.FromResult(true);
         }
 
         #endregion
@@ -527,6 +558,44 @@ namespace RICADO.RabbitMQ
 
                 await handleNackForConsumerReceived(messageId, eventArgs);
             }
+        }
+
+        private Task consumerCancelled(object sender, ConsumerEventArgs eventArgs)
+        {
+            if(eventArgs == null || eventArgs.ConsumerTags == null || eventArgs.ConsumerTags.Length == 0)
+            {
+                return Task.CompletedTask;
+            }
+
+            if(Connection.IsConnected == false || Connection.IsShutdown == true)
+            {
+                return Task.CompletedTask;
+            }
+
+            if(eventArgs.ConsumerTags.All(tag => _consumerAsyncMethods.ContainsKey(tag) == false))
+            {
+                return Task.CompletedTask;
+            }
+
+            IEnumerable<string> queueNames = eventArgs.ConsumerTags.Where(tag => _consumerAsyncMethods.ContainsKey(tag));
+
+            if(queueNames.All(queueName => DeclaredQueueNames.Contains(queueName) == false))
+            {
+                return Task.CompletedTask;
+            }
+
+            if(IsShutdown == true)
+            {
+                return Task.CompletedTask;
+            }
+
+            IsShutdown = true;
+
+            RaiseUnexpectedShutdown(404, "Consumer was Unexpectedly Cancelled");
+
+            AutoRecoveryChannel?.Writer?.TryWrite(true);
+
+            return Task.CompletedTask;
         }
 
         private async Task handleNackForConsumerReceived(Guid? messageId, BasicDeliverEventArgs eventArgs, bool forceNoRequeue = false)

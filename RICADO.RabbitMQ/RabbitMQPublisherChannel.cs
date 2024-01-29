@@ -274,6 +274,16 @@ namespace RICADO.RabbitMQ
             Channel.BasicReturn -= channelReceivedReturn;
         }
 
+        protected override Task<bool> TryAutoRecovery(CancellationToken cancellationToken)
+        {
+            foreach (PublishMessage message in _publishMessages.Values)
+            {
+                transitionPublishMessageToResult(message.MessageID, PublishResultType.Timeout);
+            }
+
+            return Task.FromResult(true);
+        }
+
         #endregion
 
 

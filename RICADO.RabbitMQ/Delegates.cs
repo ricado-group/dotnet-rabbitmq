@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -59,12 +59,25 @@ namespace RICADO.RabbitMQ
     public delegate void ChannelExceptionHandler(IRabbitMQChannel channel, Exception e);
 
     /// <summary>
+    /// A Delegate to Handle Channel Recovered Events
+    /// </summary>
+    /// <param name="connection">The <see cref="IRabbitMQChannel"/> Instance</param>
+    public delegate void ChannelRecoveredHandler(IRabbitMQChannel channel);
+
+    /// <summary>
     /// A Delegate to Handle Unexpected Channel Shutdown Events
     /// </summary>
     /// <param name="channel">The <see cref="IRabbitMQChannel"/> Instance</param>
     /// <param name="errorCode">The Code Returned by the RabbitMQ Broker</param>
     /// <param name="reason">The Reason Returned by the RabbitMQ Broker</param>
     public delegate void UnexpectedChannelShutdownHandler(IRabbitMQChannel channel, int errorCode, string reason);
+
+    /// <summary>
+    /// A Delegate to Handle Channel Recovery Error Events
+    /// </summary>
+    /// <param name="connection">The <see cref="IRabbitMQChannel"/> Instance</param>
+    /// <param name="e">The Exception that occurred during Recovery</param>
+    public delegate void ChannelRecoveryErrorHandler(IRabbitMQChannel channel, Exception e);
 
     /// <summary>
     /// A Delegate to Handle Consumer Exceptions raised as Events

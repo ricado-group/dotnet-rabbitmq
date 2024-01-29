@@ -1,6 +1,10 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -19,6 +23,17 @@ namespace RICADO.RabbitMQ
         private bool _channelShutdown = false;
         private readonly object _channelShutdownLock = new object();
 
+        private readonly ConcurrentDictionary<string, ExchangeDeclaration> _exchangeDeclarations = new ConcurrentDictionary<string, ExchangeDeclaration>();
+        private readonly ConcurrentDictionary<string, string> _passiveExchangeDeclarations = new ConcurrentDictionary<string, string>();
+        private readonly ConcurrentDictionary<string, QueueDeclaration> _queueDeclarations = new ConcurrentDictionary<string, QueueDeclaration>();
+        private readonly ConcurrentDictionary<string, string> _passiveQueueDeclarations = new ConcurrentDictionary<string, string>();
+        private readonly ConcurrentDictionary<string, ExchangeBinding> _exchangeBindings = new ConcurrentDictionary<string, ExchangeBinding>();
+        private readonly ConcurrentDictionary<string, QueueBinding> _queueBindings = new ConcurrentDictionary<string, QueueBinding>();
+
+        private Channel<bool> _autoRecoveryChannel;
+        private CancellationTokenSource _autoRecoveryCts;
+        private Task _autoRecoveryTask;
+
         #endregion
 
 
@@ -29,6 +44,10 @@ namespace RICADO.RabbitMQ
         protected SemaphoreSlim ChannelSemaphore => _channelSemaphore;
 
         protected IModel Channel => _channel;
+
+        protected IReadOnlyCollection<string> DeclaredQueueNames => new ReadOnlyCollection<string>(_queueDeclarations.Keys.Concat(_passiveQueueDeclarations.Keys).ToList());
+
+        protected Channel<bool> AutoRecoveryChannel => _autoRecoveryChannel;
 
         #endregion
 
@@ -46,7 +65,7 @@ namespace RICADO.RabbitMQ
                     return _channelShutdown;
                 }
             }
-            private set
+            protected set
             {
                 lock (_channelShutdownLock)
                 {
@@ -75,12 +94,20 @@ namespace RICADO.RabbitMQ
         {
             IsShutdown = false;
 
+            _autoRecoveryChannel = System.Threading.Channels.Channel.CreateUnbounded<bool>(new System.Threading.Channels.UnboundedChannelOptions { SingleReader = true, SingleWriter = false, AllowSynchronousContinuations = false });
+            _autoRecoveryCts = new CancellationTokenSource();
+            _autoRecoveryTask = Task.Run(autoRecoveryHandler, CancellationToken.None);
+
             await initializeChannel(cancellationToken);
         }
 
         public virtual async Task Destroy(CancellationToken cancellationToken)
         {
             IsShutdown = true;
+
+            _autoRecoveryChannel?.Writer?.Complete();
+
+            _autoRecoveryCts?.Cancel();
 
             if (!_channelSemaphore.Wait(0))
             {
@@ -95,6 +122,25 @@ namespace RICADO.RabbitMQ
             {
                 _channelSemaphore.Release();
             }
+
+            try
+            {
+                if(_autoRecoveryTask != null)
+                {
+                    await _autoRecoveryTask;
+                }
+            }
+            catch
+            {
+            }
+
+            _autoRecoveryChannel = null;
+            _autoRecoveryTask = null;
+
+            _exchangeDeclarations.Clear();
+            _queueDeclarations.Clear();
+            _exchangeBindings.Clear();
+            _queueBindings.Clear();
         }
 
         public async Task DeclareExchange(string name, ExchangeType type, bool durable, bool autoDelete, CancellationToken cancellationToken)
@@ -132,6 +178,16 @@ namespace RICADO.RabbitMQ
                 }
 
                 _channel.ExchangeDeclare(name, type.ToString().ToLower(), durable, autoDelete);
+
+                ExchangeDeclaration declaration = new ExchangeDeclaration()
+                {
+                    Name = name,
+                    Type = type,
+                    Durable = durable,
+                    AutoDelete = autoDelete,
+                };
+
+                _exchangeDeclarations.AddOrUpdate(name, declaration, (key, existingDeclaration) => declaration);
             }
             finally
             {
@@ -174,6 +230,8 @@ namespace RICADO.RabbitMQ
                 }
 
                 _channel.ExchangeDeclarePassive(name);
+
+                _passiveExchangeDeclarations.TryAdd(name, name);
             }
             finally
             {
@@ -214,6 +272,9 @@ namespace RICADO.RabbitMQ
                 {
                     throw new RabbitMQException("Cannot Delete an Exchange while the Connection is Unavailable");
                 }
+
+                _exchangeDeclarations.TryRemove(name, out _);
+                _passiveExchangeDeclarations.TryRemove(name, out _);
 
                 _channel.ExchangeDelete(name, ifUnused);
             }
@@ -270,6 +331,17 @@ namespace RICADO.RabbitMQ
                 {
                     throw new RabbitMQException("Failed to Declare the Queue - The Broker Queue Name did not match the Client Queue Name");
                 }
+
+                QueueDeclaration declaration = new QueueDeclaration()
+                {
+                    Name = name,
+                    Durable = durable,
+                    Exclusive = exclusive,
+                    AutoDelete = autoDelete,
+                    Properties = properties,
+                };
+
+                _queueDeclarations.AddOrUpdate(name, declaration, (key, existingDeclaration) => declaration);
             }
             finally
             {
@@ -317,6 +389,8 @@ namespace RICADO.RabbitMQ
                 {
                     throw new RabbitMQException("Failed to Passively Declare the Queue - The Broker Queue Name did not match the Client Queue Name");
                 }
+
+                _passiveQueueDeclarations.TryAdd(name, name);
             }
             finally
             {
@@ -357,6 +431,9 @@ namespace RICADO.RabbitMQ
                 {
                     throw new RabbitMQException("Cannot Delete a Queue while the Connection is Unavailable");
                 }
+
+                _queueDeclarations.TryRemove(name, out _);
+                _passiveQueueDeclarations.TryRemove(name, out _);
 
                 return _channel.QueueDelete(name, ifUnused, ifEmpty);
             }
@@ -411,6 +488,15 @@ namespace RICADO.RabbitMQ
                 }
 
                 _channel.ExchangeBind(destinationName, sourceName, routingKey);
+
+                ExchangeBinding binding = new ExchangeBinding()
+                {
+                    DestinationName = destinationName,
+                    SourceName = sourceName,
+                    RoutingKey = routingKey,
+                };
+
+                _exchangeBindings.AddOrUpdate(binding.GetUniqueKey(), binding, (key, existingBinding) => binding);
             }
             finally
             {
@@ -461,6 +547,15 @@ namespace RICADO.RabbitMQ
                 {
                     throw new RabbitMQException("Cannot Unbind an Exchange from another Exchange while the Connection is Unavailable");
                 }
+
+                ExchangeBinding binding = new ExchangeBinding()
+                {
+                    DestinationName = destinationName,
+                    SourceName = sourceName,
+                    RoutingKey = routingKey,
+                };
+
+                _exchangeBindings.TryRemove(binding.GetUniqueKey(), out _);
 
                 _channel.ExchangeUnbind(destinationName, sourceName, routingKey);
             }
@@ -515,6 +610,15 @@ namespace RICADO.RabbitMQ
                 }
 
                 _channel.QueueBind(queueName, exchangeName, routingKey);
+
+                QueueBinding binding = new QueueBinding()
+                {
+                    QueueName = queueName,
+                    ExchangeName = exchangeName,
+                    RoutingKey = routingKey,
+                };
+
+                _queueBindings.AddOrUpdate(binding.GetUniqueKey(), binding, (key, existingBinding) => binding);
             }
             finally
             {
@@ -566,6 +670,15 @@ namespace RICADO.RabbitMQ
                     throw new RabbitMQException("Cannot Unbind a Queue from an Exchange while the Connection is Unavailable");
                 }
 
+                QueueBinding binding = new QueueBinding()
+                {
+                    QueueName = queueName,
+                    ExchangeName = exchangeName,
+                    RoutingKey = routingKey,
+                };
+
+                _queueBindings.TryRemove(binding.GetUniqueKey(), out _);
+
                 _channel.QueueUnbind(queueName, exchangeName, routingKey);
             }
             finally
@@ -582,6 +695,26 @@ namespace RICADO.RabbitMQ
         protected abstract Task InitializeChannel(CancellationToken cancellationToken);
 
         protected abstract void DestroyChannel();
+
+        protected abstract Task<bool> TryAutoRecovery(CancellationToken cancellationToken);
+
+        protected void RaiseUnexpectedShutdown(int errorCode, string reason)
+        {
+            try
+            {
+                UnexpectedChannelShutdown?.Invoke(this, errorCode, reason);
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    ChannelException?.Invoke(this, ex);
+                }
+                catch
+                {
+                }
+            }
+        }
 
         #endregion
 
@@ -683,12 +816,18 @@ namespace RICADO.RabbitMQ
 
         private void channelCallbackException(object sender, CallbackExceptionEventArgs e)
         {
-            if (e == null || e.Exception == null || ChannelException == null)
+            if (e == null || e.Exception == null)
             {
                 return;
             }
 
-            ChannelException(this, e.Exception);
+            try
+            {
+                ChannelException?.Invoke(this, e.Exception);
+            }
+            catch
+            {
+            }
         }
 
         private void channelModelShutdown(object sender, ShutdownEventArgs e)
@@ -698,12 +837,12 @@ namespace RICADO.RabbitMQ
                 return;
             }
 
-            if (e.ReplyCode == 0 || e.ReplyCode == 320)
+            if (e.ReplyCode == 0)
             {
                 return;
             }
 
-            if (_channel.IsOpen == true) // Ignore Shutdown Errors when the Channel is still usable
+            if(_connection.IsConnected == false || _connection.IsShutdown == true)
             {
                 return;
             }
@@ -718,7 +857,233 @@ namespace RICADO.RabbitMQ
                 _channelShutdown = true;
             }
 
-            UnexpectedChannelShutdown?.Invoke(this, e.ReplyCode, e.ReplyText);
+            try
+            {
+                UnexpectedChannelShutdown?.Invoke(this, e.ReplyCode, e.ReplyText);
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    ChannelException?.Invoke(this, ex);
+                }
+                catch
+                {
+                }
+            }
+
+            _autoRecoveryChannel?.Writer?.TryWrite(true);
+        }
+
+        private async Task autoRecoveryHandler()
+        {
+            CancellationToken cancellationToken = _autoRecoveryCts.Token;
+
+            try
+            {
+                while(await _autoRecoveryChannel.Reader.WaitToReadAsync(cancellationToken))
+                {
+                    while(_autoRecoveryChannel.Reader.TryRead(out bool request))
+                    {
+                        try
+                        {
+                            if (await tryAutoRecovery(cancellationToken) == false)
+                            {
+                                scheduleAutoRecoveryRetry(cancellationToken);
+                            }
+
+                            if(cancellationToken.IsCancellationRequested == false)
+                            {
+                                lock (_channelShutdownLock)
+                                {
+                                    _channelShutdown = false;
+                                }
+                            }
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            throw;
+                        }
+                        catch (Exception e)
+                        {
+                            try
+                            {
+                                ChannelRecoveryError?.Invoke(this, e);
+                            }
+                            catch { }
+
+                            scheduleAutoRecoveryRetry(cancellationToken);
+                        }
+
+                        cancellationToken.ThrowIfCancellationRequested();
+                    }
+
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+
+        private async Task<bool> tryAutoRecovery(CancellationToken cancellationToken)
+        {
+            await _channelSemaphore.WaitAsync(cancellationToken);
+
+            try
+            {
+                destroyChannel();
+            }
+            finally
+            {
+                _channelSemaphore.Release();
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            await initializeChannel(cancellationToken);
+
+            await _channelSemaphore.WaitAsync(cancellationToken);
+
+            try
+            {
+                foreach (ExchangeDeclaration declaration in _exchangeDeclarations.Values)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    try
+                    {
+                        _channel.ExchangeDeclare(declaration.Name, declaration.Type.ToString().ToLower(), declaration.Durable, declaration.AutoDelete);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch(Exception e)
+                    {
+                        throw new RabbitMQException("Failed to Declare Exchange '" + declaration.Name + "' during Auto Recovery - " + e.Message);
+                    }
+                }
+
+                foreach (string exchangeName in _passiveExchangeDeclarations.Values)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    try
+                    {
+                        _channel.ExchangeDeclarePassive(exchangeName);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch (Exception e)
+                    {
+                        throw new RabbitMQException("Failed to Passively Declare Exchange '" + exchangeName + "' during Auto Recovery - " + e.Message);
+                    }
+                }
+
+                foreach (QueueDeclaration declaration in _queueDeclarations.Values)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    try
+                    {
+                        QueueDeclareOk result = _channel.QueueDeclare(declaration.Name, declaration.Durable, declaration.Exclusive, declaration.AutoDelete, declaration.Properties);
+
+                        if (result == null || result.QueueName != declaration.Name)
+                        {
+                            throw new RabbitMQException("The Broker Queue Name did not match the Client Queue Name");
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch (Exception e)
+                    {
+                        throw new RabbitMQException("Failed to Declare Queue '" + declaration.Name + "' during Auto Recovery - " + e.Message);
+                    }
+                }
+
+                foreach (string queueName in _passiveQueueDeclarations.Values)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    try
+                    {
+                        _channel.QueueDeclarePassive(queueName);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch (Exception e)
+                    {
+                        throw new RabbitMQException("Failed to Passively Declare Queue '" + queueName + "' during Auto Recovery - " + e.Message);
+                    }
+                }
+
+                foreach (ExchangeBinding binding in _exchangeBindings.Values)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    try
+                    {
+                        _channel.ExchangeBind(binding.DestinationName, binding.SourceName, binding.RoutingKey);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch (Exception e)
+                    {
+                        throw new RabbitMQException("Failed to Bind Exchange '" + binding.SourceName + "' to Exchange '" + binding.DestinationName + "' during Auto Recovery - " + e.Message);
+                    }
+                }
+
+                foreach (QueueBinding binding in _queueBindings.Values)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    try
+                    {
+                        _channel.QueueBind(binding.QueueName, binding.ExchangeName, binding.RoutingKey);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch (Exception e)
+                    {
+                        throw new RabbitMQException("Failed to Bind Queue '" + binding.QueueName + "' to Exchange '" + binding.ExchangeName + "' during Auto Recovery - " + e.Message);
+                    }
+                }
+
+                if(await TryAutoRecovery(cancellationToken) != true)
+                {
+                    return false;
+                }
+
+                try
+                {
+                    ChannelRecovered?.Invoke(this);
+                }
+                catch
+                {
+                }
+
+                return true;
+            }
+            finally
+            {
+                _channelSemaphore.Release();
+            }
+        }
+
+        private void scheduleAutoRecoveryRetry(CancellationToken cancellationToken)
+        {
+            _ = Task.Delay(_connection.ConnectionRecoveryInterval, cancellationToken).ContinueWith(task => _autoRecoveryChannel?.Writer?.TryWrite(true));
         }
 
         #endregion
@@ -729,6 +1094,50 @@ namespace RICADO.RabbitMQ
         public event ChannelExceptionHandler ChannelException;
 
         public event UnexpectedChannelShutdownHandler UnexpectedChannelShutdown;
+
+        public event ChannelRecoveredHandler ChannelRecovered;
+
+        public event ChannelRecoveryErrorHandler ChannelRecoveryError;
+
+        #endregion
+
+
+        #region Structs
+
+        protected struct ExchangeDeclaration
+        {
+            public string Name;
+            public ExchangeType Type;
+            public bool Durable;
+            public bool AutoDelete;
+        }
+
+        protected struct QueueDeclaration
+        {
+            public string Name;
+            public bool Durable;
+            public bool Exclusive;
+            public bool AutoDelete;
+            public Dictionary<string, object> Properties;
+        }
+
+        protected struct ExchangeBinding
+        {
+            public string SourceName;
+            public string DestinationName;
+            public string RoutingKey;
+
+            public string GetUniqueKey() => $"{SourceName ?? "NoSource"}::{DestinationName ?? "NoDestination"}::{RoutingKey ?? "NoRoutingKey"}";
+        }
+
+        protected struct QueueBinding
+        {
+            public string QueueName;
+            public string ExchangeName;
+            public string RoutingKey;
+
+            public string GetUniqueKey() => $"{QueueName ?? "NoQueue"}::{ExchangeName ?? "NoExchange"}::{RoutingKey ?? "NoRoutingKey"}";
+        }
 
         #endregion
     }

@@ -149,6 +149,16 @@ namespace RICADO.RabbitMQ
         /// </summary>
         event UnexpectedChannelShutdownHandler UnexpectedChannelShutdown;
 
+        /// <summary>
+        /// An Event that is Raised when the RabbitMQ Channel has Recovered
+        /// </summary>
+        event ChannelRecoveredHandler ChannelRecovered;
+
+        /// <summary>
+        /// An Event that is Raised when the RabbitMQ Channel Fails to Recover with an Exception
+        /// </summary>
+        event ChannelRecoveryErrorHandler ChannelRecoveryError;
+
         #endregion
     }
 }
