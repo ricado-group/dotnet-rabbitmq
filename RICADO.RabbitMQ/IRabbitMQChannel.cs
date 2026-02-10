@@ -65,16 +65,25 @@ namespace RICADO.RabbitMQ
         Task DeleteExchange(string name, bool ifUnused, CancellationToken cancellationToken);
 
         /// <summary>
-        /// Declare a Queue
+        /// Declare a Classic Queue
         /// </summary>
         /// <param name="name">The Name of the Queue to Declare</param>
         /// <param name="durable">Whether the Queue should survive a RabbitMQ Broker Restart</param>
         /// <param name="exclusive">Whether the Queue can be used by other Clients and Processes</param>
         /// <param name="autoDelete">Whether the Queue should be Deleted Automatically when it is no longer Bound or this Client Disconnects</param>
         /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
-        /// <param name="deadLetterExchangeName">An Optional Name of the Exchange to Send Messages that are Dead-Lettered</param>
-        /// <returns>A Task that will Complete upon successfully Declaring a Queue</returns>
-        Task DeclareQueue(string name, bool durable, bool exclusive, bool autoDelete, CancellationToken cancellationToken, string deadLetterExchangeName = null);
+        /// <param name="arguments">An Optional Collection of Arguments to Customize the Classic Queue</param>
+        /// <returns>A Task that will Complete upon successfully Declaring a Classic Queue</returns>
+        Task DeclareClassicQueue(string name, bool durable, bool exclusive, bool autoDelete, CancellationToken cancellationToken, ClassicQueueArguments arguments = null);
+
+        /// <summary>
+        /// Declare a Quorum Queue
+        /// </summary>
+        /// <param name="name">The Name of the Queue to Declare</param>
+        /// <param name="cancellationToken">A Cancellation Token that can be used to signal the Asynchronous Operation should be Cancelled</param>
+        /// <param name="arguments">An Optional Collection of Arguments to Customize the Quorum Queue</param>
+        /// <returns>A Task that will Complete upon successfully Declaring a Quorum Queue</returns>
+        Task DeclareQuorumQueue(string name, CancellationToken cancellationToken, QuorumQueueArguments arguments = null);
 
         /// <summary>
         /// Confirm a Queue with the specified Name exists

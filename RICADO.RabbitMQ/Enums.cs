@@ -12,6 +12,16 @@
     }
 
     /// <summary>
+    /// RabbitMQ Queue Types
+    /// </summary>
+    public enum QueueType
+    {
+        Classic,
+        Quorum,
+        Stream
+    }
+
+    /// <summary>
     /// Mode for Publishing Messages
     /// </summary>
     public enum PublishMode
