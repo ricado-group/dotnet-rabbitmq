@@ -284,69 +284,14 @@ namespace RICADO.RabbitMQ
             }
         }
 
-        public async Task DeclareQueue(string name, bool durable, bool exclusive, bool autoDelete, CancellationToken cancellationToken, string deadLetterExchangeName = null)
+        public async Task DeclareClassicQueue(string name, bool durable, bool exclusive, bool autoDelete, CancellationToken cancellationToken, ClassicQueueArguments arguments = null)
         {
-            if (name == null)
-            {
-                throw new ArgumentNullException(nameof(name));
-            }
+            await declareQueue(name, QueueType.Classic, durable, exclusive, autoDelete, cancellationToken, arguments?.ToDictionary());
+        }
 
-            if (IsShutdown == true)
-            {
-                throw new RabbitMQException("Cannot Declare a Queue since the Channel is Shutdown");
-            }
-
-            if (_connection.IsShutdown == true)
-            {
-                throw new RabbitMQException("Cannot Declare a Queue since the Connection is Shutdown");
-            }
-
-            if (!_channelSemaphore.Wait(0))
-            {
-                await _channelSemaphore.WaitAsync(cancellationToken);
-            }
-
-            try
-            {
-                if (IsConnected == false)
-                {
-                    throw new RabbitMQException("Cannot Declare a Queue while the Channel is Unavailable");
-                }
-
-                if (_connection.IsConnected == false)
-                {
-                    throw new RabbitMQException("Cannot Declare a Queue while the Connection is Unavailable");
-                }
-
-                Dictionary<string, object> properties = new Dictionary<string, object>();
-
-                if (deadLetterExchangeName != null && deadLetterExchangeName.Length > 0)
-                {
-                    properties.Add("x-dead-letter-exchange", deadLetterExchangeName);
-                }
-
-                QueueDeclareOk result = _channel.QueueDeclare(name, durable, exclusive, autoDelete, properties);
-
-                if (result == null || result.QueueName != name)
-                {
-                    throw new RabbitMQException("Failed to Declare the Queue - The Broker Queue Name did not match the Client Queue Name");
-                }
-
-                QueueDeclaration declaration = new QueueDeclaration()
-                {
-                    Name = name,
-                    Durable = durable,
-                    Exclusive = exclusive,
-                    AutoDelete = autoDelete,
-                    Properties = properties,
-                };
-
-                _queueDeclarations.AddOrUpdate(name, declaration, (key, existingDeclaration) => declaration);
-            }
-            finally
-            {
-                _channelSemaphore.Release();
-            }
+        public async Task DeclareQuorumQueue(string name, CancellationToken cancellationToken, QuorumQueueArguments arguments = null)
+        {
+            await declareQueue(name, QueueType.Quorum, true, false, false, cancellationToken, arguments?.ToDictionary());
         }
 
         public async Task DeclareQueuePassive(string name, CancellationToken cancellationToken)
@@ -1043,6 +988,84 @@ namespace RICADO.RabbitMQ
         private void scheduleAutoRecoveryRetry(CancellationToken cancellationToken)
         {
             _ = Task.Delay(_connection.ConnectionRecoveryInterval, cancellationToken).ContinueWith(task => _autoRecoveryChannel?.Writer?.TryWrite(true));
+        }
+
+        private async Task declareQueue(string name, QueueType type, bool durable, bool exclusive, bool autoDelete, CancellationToken cancellationToken, Dictionary<string, object> arguments = null)
+        {
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
+            if (IsShutdown == true)
+            {
+                throw new RabbitMQException("Cannot Declare a Queue since the Channel is Shutdown");
+            }
+
+            if (_connection.IsShutdown == true)
+            {
+                throw new RabbitMQException("Cannot Declare a Queue since the Connection is Shutdown");
+            }
+
+            if (!_channelSemaphore.Wait(0))
+            {
+                await _channelSemaphore.WaitAsync(cancellationToken);
+            }
+
+            try
+            {
+                if (IsConnected == false)
+                {
+                    throw new RabbitMQException("Cannot Declare a Queue while the Channel is Unavailable");
+                }
+
+                if (_connection.IsConnected == false)
+                {
+                    throw new RabbitMQException("Cannot Declare a Queue while the Connection is Unavailable");
+                }
+
+                if(arguments == null)
+                {
+                    arguments = new Dictionary<string, object>();
+                }
+
+                switch(type)
+                {
+                    case QueueType.Classic:
+                        arguments.Add("x-queue-type", "classic");
+                        break;
+
+                    case QueueType.Quorum:
+                        arguments.Add("x-queue-type", "quorum");
+                        break;
+
+                    case QueueType.Stream:
+                        arguments.Add("x-queue-type", "stream");
+                        break;
+                }
+
+                QueueDeclareOk result = _channel.QueueDeclare(name, durable, exclusive, autoDelete, arguments);
+
+                if (result == null || result.QueueName != name)
+                {
+                    throw new RabbitMQException("Failed to Declare the Queue - The Broker Queue Name did not match the Client Queue Name");
+                }
+
+                QueueDeclaration declaration = new QueueDeclaration()
+                {
+                    Name = name,
+                    Durable = durable,
+                    Exclusive = exclusive,
+                    AutoDelete = autoDelete,
+                    Properties = arguments,
+                };
+
+                _queueDeclarations.AddOrUpdate(name, declaration, (key, existingDeclaration) => declaration);
+            }
+            finally
+            {
+                _channelSemaphore.Release();
+            }
         }
 
         #endregion
