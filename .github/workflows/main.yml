@@ -10,23 +10,28 @@ on:
       - '*.*.*'
   pull_request:
 
+permissions:
+  id-token: write
+
 # Workflow Jobs
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     steps:
       # Step 1 - Checkout Code
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       
       # Step 2 - Build and Publish
       - name: Build and Publish
-        uses: ricado-group/dotnet-library-build-release-action@v1
+        uses: ricado-group/dotnet-library-build-release-action@v2
         with:
           project-name: 'RICADO.RabbitMQ'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           private-nuget-url: 'https://nuget.pkg.github.com/ricado-group/index.json'
           private-nuget-token: ${{ secrets.GH_PACKAGES_PAT }}
-          public-nuget-token: ${{ secrets.NUGET_APIKEY }}
+          public-nuget-user: ${{ vars.NUGET_USER }}
           publish-public: true
           dotnet-version: 8.0.x
