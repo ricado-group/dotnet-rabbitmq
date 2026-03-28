@@ -436,7 +436,7 @@ namespace RICADO.RabbitMQ
 
         protected override Task InitializeChannel(CancellationToken cancellationToken)
         {
-            Channel.BasicQos(0, PrefetchCount, true);
+            Channel.BasicQos(0, PrefetchCount, false);
 
             _consumerCts = new CancellationTokenSource();
 
