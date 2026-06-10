@@ -24,7 +24,7 @@ jobs:
       
       # Step 2 - Run CodeQL
       - name: Run CodeQL
-        uses: ricado-group/dotnet-library-codeql-action@v1
+        uses: ricado-group/dotnet-library-codeql-action@v2
         with:
           private-nuget-url: 'https://nuget.pkg.github.com/ricado-group/index.json'
           private-nuget-token: ${{ secrets.GH_PACKAGES_PAT }}
